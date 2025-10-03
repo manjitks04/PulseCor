@@ -1,4 +1,4 @@
-**PULSE COR**
+<img width="287" height="50" alt="image" src="https://github.com/user-attachments/assets/ddead33d-326e-4eaf-98aa-c7a4e5d7c104" />
 
 PulseCor replaces traditional health tracking forms with a friendly, conversational interface. Powered with Cora, a conversational assistant that helps users track their daily wellness through natural conversations. Keeping track of your lifestyle factors which may imapct your health such as stress levels, water intake, exercise levels, sleep and diet. Cora guides users through daily check-ins, medication reminders, and weekly reflections in a supportive, judgment-free way.
 
