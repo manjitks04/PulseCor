@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import SwiftData
 
 @main
 struct PulseCorApp: App {
@@ -13,5 +14,7 @@ struct PulseCorApp: App {
         WindowGroup {
             ContentView()
         }
+        .modelContainer(for: [StepEntry.self, HeartRateEntry.self, RestingHeartRateEntry.self, HRVEntry.self])
     }
 }
+
