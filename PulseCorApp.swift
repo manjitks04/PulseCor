@@ -14,7 +14,7 @@ struct PulseCorApp: App {
         WindowGroup {
             ContentView()
         }
-        .modelContainer(for: [StepEntry.self, HeartRateEntry.self, RestingHeartRateEntry.self, HRVEntry.self])
+        .modelContainer(for: [User.self, StepEntry.self, HeartRateEntry.self, RestingHeartRateEntry.self, HRVEntry.self])
     }
 }
 
