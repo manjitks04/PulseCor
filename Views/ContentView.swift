@@ -12,25 +12,26 @@ struct ContentView: View {
         TabView {
             DashboardView()
                 .tabItem {
-                    Label("Dashboard", systemImage: "heart.fill")
-                }
-
-            AboutView()
-                .tabItem {
-                    Label("History", systemImage: "clock.arrow.circlepath")
+                    Label("Home", systemImage: "heart.fill")
                 }
 
             ChatView()
                 .tabItem {
-                    Label("Settings", systemImage: "gear")
+                    Label("Cora", systemImage: "bubble.left.and.text.bubble.right")
                 }
-            
+
             BrowseView()
                 .tabItem {
-                    Label("Settings", systemImage: "gear")
+                    Label("Browse", systemImage: "heart.text.clipboard")
+                }
+            
+            AboutView()
+                .tabItem {
+                    Label("PulseCor", systemImage: "checkmark.shield")
                 }
 
         }
+        .background(Color(red: 247/255, green: 249/255, blue: 252/255))
         .onAppear {
             HealthKitService.shared.requestAuth { success, error in
                 if success {
@@ -38,6 +39,9 @@ struct ContentView: View {
                 }
             }
         }
+//        .onAppear {
+//            NotificationService().requestAuthorization()
+//        }
     }
 }
 
