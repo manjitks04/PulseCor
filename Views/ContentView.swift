@@ -31,7 +31,7 @@ struct ContentView: View {
                 }
 
         }
-        .background(Color(red: 247/255, green: 249/255, blue: 252/255))
+        .background(Color("MainBG"))
         .onAppear {
             HealthKitService.shared.requestAuth { success, error in
                 if success {
