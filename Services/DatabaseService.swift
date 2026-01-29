@@ -351,6 +351,27 @@ class DatabaseService {
         return nil
     }
     
+    //dashboard main count
+    func getWeeklyCount(userId: Int = 1) throws -> Int{
+        guard let database = db else{
+            throw PulseCorError.databaseConnectionFailed
+        }
+        
+        let calendar = Calendar.current
+        let now = Date()
+        
+        guard let weekStart = calendar.dateInterval(of: .weekOfYear, for: now)?.start else{
+            return 0
+        }
+        
+        let query = checkIns
+            .filter(self.userId == userId)
+            .filter(isComplete == true)
+            .filter(date >= weekStart && date <= now)
+        
+        return try database.scalar(query.count)
+    }
+    
     func updateUserStreak(userId: Int, currentStreak streak: Int, longestStreak longest: Int, lastCheckIn: Date) throws {
         guard let database = db else {
             throw PulseCorError.databaseConnectionFailed

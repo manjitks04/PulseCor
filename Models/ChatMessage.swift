@@ -7,12 +7,12 @@ import Foundation
 
 struct ChatMessage: Codable {
     let id: Int?
-    let sessionId: String  // Links messages to a conversation session
+    let sessionId: String  // links messages to a conversation session
     let sender: MessageSender
     let content: String
     let timestamp: Date
     let messageType: MessageType
-    var quickReplies: [String]?  // Optional quick reply buttons
+    var quickReplies: [String]?  // quick reply buttons
     var stableId: String {
             return id != nil ? String(id!) : "\(timestamp.timeIntervalSince1970)-\(content.prefix(10))"
     }

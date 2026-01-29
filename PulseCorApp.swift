@@ -17,4 +17,3 @@ struct PulseCorApp: App {
         .modelContainer(for: [User.self, StepEntry.self, HeartRateEntry.self, RestingHeartRateEntry.self, HRVEntry.self])
     }
 }
-
