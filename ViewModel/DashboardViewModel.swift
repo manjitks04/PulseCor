@@ -8,13 +8,12 @@ import Combine
 
 class DashboardViewModel: ObservableObject {
     
-    //Published Properties
     @Published var currentStreak: Int = 0
     @Published var longestStreak: Int = 0
     @Published var lastCheckInDate: Date?
     @Published var recentCheckIns: [DailyCheckIn] = []
+    @Published var weeklyCheckInCount: Int = 0
     
-    // UI-ready formatted strings/numbers
     @Published var averageSleepHours: Double = 0
     @Published var averageWaterGlasses: Double = 0
     @Published var errorMessage: String?
@@ -27,20 +26,22 @@ class DashboardViewModel: ObservableObject {
         loadDashboardData()
     }
     
-    // Load Data
+    //loads data
     func loadDashboardData() {
         do {
-            // 1. Load user streak data
+            //load user streak data
             if let user = try databaseService.getUser() {
                 currentStreak = user.currentStreak
                 longestStreak = user.longestStreak
                 lastCheckInDate = user.lastCheckInDate
             }
             
-            // 2. Load recent check-ins for the chart/averages
+            weeklyCheckInCount = try databaseService.getWeeklyCount(userId: 1)
+            
+            //recent check-ins for the chart/averages
             recentCheckIns = try databaseService.getRecentCheckIns(limit: 7)
             
-            // 3. Process the data for the UI
+            //process the data for the UI
             calculateAverages()
             
         } catch let error as PulseCorError {
@@ -50,7 +51,7 @@ class DashboardViewModel: ObservableObject {
         }
     }
     
-    //Calculation Logic
+    //calc Logic
     private func calculateAverages() {
         guard !recentCheckIns.isEmpty else {
             averageSleepHours = 0
@@ -86,7 +87,6 @@ class DashboardViewModel: ObservableObject {
         
         averageWaterGlasses = waterValues.isEmpty ? 0 : waterValues.reduce(0, +) / Double(waterValues.count)
         
-        // UI Helpers
         func hasCheckedInToday() -> Bool {
             guard let lastCheckIn = lastCheckInDate else { return false }
             return Calendar.current.isDateInToday(lastCheckIn)
