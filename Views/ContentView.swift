@@ -8,6 +8,8 @@ import SwiftUI
 import HealthKit
 
 struct ContentView: View {
+    @AppStorage("isDarkMode") private var isDarkMode: Bool = false
+    
     var body: some View {
         TabView {
             DashboardView()
@@ -32,6 +34,7 @@ struct ContentView: View {
 
         }
         .background(Color("MainBG"))
+        .preferredColorScheme(isDarkMode ? .dark : .light)
         .onAppear {
             HealthKitService.shared.requestAuth { success, error in
                 if success {
@@ -39,13 +42,12 @@ struct ContentView: View {
                 }
             }
         }
-//        .onAppear {
-//            NotificationService().requestAuthorization()
-//        }
+        // .onAppear {
+        // NotificationService().requestAuthorization()
+        //}
     }
 }
 
 #Preview {
     ContentView()
 }
-
