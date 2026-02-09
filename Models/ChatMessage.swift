@@ -5,20 +5,18 @@
 //
 import Foundation
 
-struct ChatMessage: Codable {
-    let id: Int?
+struct ChatMessage: Codable, Identifiable {
+    let id: UUID
     let sessionId: String  // links messages to a conversation session
     let sender: MessageSender
     let content: String
     let timestamp: Date
     let messageType: MessageType
     var quickReplies: [String]?  // quick reply buttons
-    var stableId: String {
-            return id != nil ? String(id!) : "\(timestamp.timeIntervalSince1970)-\(content.prefix(10))"
-    }
+   
     
     // initaliser
-    init(id: Int? = nil, sessionId: String, sender: MessageSender, content: String, timestamp: Date = Date(), messageType: MessageType = .text, quickReplies: [String]? = nil) {
+    init(id: UUID = UUID(), sessionId: String, sender: MessageSender, content: String, timestamp: Date = Date(), messageType: MessageType = .text, quickReplies: [String]? = nil) {
         self.id = id
         self.sessionId = sessionId
         self.sender = sender

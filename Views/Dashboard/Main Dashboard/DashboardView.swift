@@ -11,6 +11,8 @@ struct DashboardView: View {
     @StateObject private var viewModel = DashboardViewModel()
     @Environment(\.modelContext) private var modelContext
     @Query private var users: [User]
+    @State private var hasCheckedInToday = false
+    @State private var isCheckingStatus = true
     
     var weekDays: [CalendarDay] {
         WeeklyCalendarHelper.getCurrentWeek()
@@ -68,15 +70,20 @@ struct DashboardView: View {
                                     .fontWeight(.semibold)
                                     .foregroundColor(.white)
                                 
-                                NavigationLink(destination: ConversationView()) {
-                                    Text("Let's go!")
-                                        .font(.subheadline)
-                                        .fontWeight(.medium)
-                                        .foregroundColor(.pink)
-                                        .padding(.horizontal, 24)
-                                        .padding(.vertical, 8)
-                                        .background(Color.white)
-                                        .cornerRadius(20)
+                                if isCheckingStatus {
+                                    ProgressView()
+                                        .tint(.white)
+                                } else {
+                                    NavigationLink(destination: destinationView()) {
+                                        Text("Let's go!")
+                                            .font(.subheadline)
+                                            .fontWeight(.medium)
+                                            .foregroundColor(.pink)
+                                            .padding(.horizontal, 24)
+                                            .padding(.vertical, 8)
+                                            .background(Color.white)
+                                            .cornerRadius(20)
+                                    }
                                 }
                             }
                             .padding(.top, 8)
@@ -98,6 +105,9 @@ struct DashboardView: View {
                         }
                         .padding(.horizontal)
                     }
+                    .onAppear {
+                        checkTodayStatus()
+                    }
                     
                     if let currentUser = users.first {
                         ProfileButton(user: currentUser)
@@ -116,6 +126,26 @@ struct DashboardView: View {
                 
                 viewModel.loadDashboardData()
             }
+        }
+    }
+    
+    @ViewBuilder
+    private func destinationView() -> some View {
+        if hasCheckedInToday {
+            AlreadyCheckedInView()
+        } else {
+            ConversationView()
+        }
+    }
+    
+    private func checkTodayStatus() {
+        do {
+            hasCheckedInToday = try DatabaseService.shared.hasCheckedInToday()
+            isCheckingStatus = false
+        } catch {
+            print("Error checking today's status: \(error)")
+            hasCheckedInToday = false
+            isCheckingStatus = false
         }
     }
 }

@@ -14,12 +14,21 @@ class DatabaseService {
     private let checkIns = Table("daily_check_ins")
     private let messages = Table("messages")
     private let flows = Table("conversation_flows")
+    private let articles = Table("articles")
+    private let medications = Table("medications")
+    private let medicationLogs = Table("medication_logs")
 
     // Common Columns
     private let id = Expression<Int64>("id")
     private let userId = Expression<Int>("user_id")
     private let date = Expression<Date>("date")
     private let sessionId = Expression<String>("session_id")
+    
+    private let title = Expression<String>("title")
+    private let summary = Expression<String>("summary")
+    private let category = Expression<String>("category")
+    private let articleType = Expression<String>("article_type")
+    private let imageName = Expression<String?>("image_name")
 
     // Check-In Columns
     private let sleepQuality = Expression<String?>("sleep_quality")
@@ -37,7 +46,7 @@ class DatabaseService {
 
     // Flow Columns
     private let currentStep = Expression<String>("current_step")
-    private let tempData = Expression<String>("temp_data") // Stored as JSON string
+    private let tempData = Expression<String>("temp_data")
 
     // User Columns
     private let name = Expression<String>("name")
@@ -47,8 +56,6 @@ class DatabaseService {
     private let lastCheckInDate = Expression<Date?>("last_check_in_date")
     
     //Medication Columns
-    private let medications = Table("medications")
-    private let medicationLogs = Table("medication_logs")
     private let medicationId = Expression<Int>("medication_id")
     private let dosage = Expression<String>("dosage")
     private let frequency = Expression<String>("frequency")
@@ -66,6 +73,7 @@ class DatabaseService {
             let path = NSSearchPathForDirectoriesInDomains(.documentDirectory, .userDomainMask, true).first!
             db = try Connection("\(path)/pulsecor.sqlite3")
             try createTables()
+            try seedInitialArticles()
         } catch {
             print("Database setup failed: \(error)")
         }
@@ -73,7 +81,6 @@ class DatabaseService {
 
     
     private func createTables() throws {
-        //User Table
         try db?.run(users.create(ifNotExists: true) { t in
                 t.column(id, primaryKey: .autoincrement)
                 t.column(name)
@@ -83,7 +90,6 @@ class DatabaseService {
                 t.column(lastCheckInDate)
         })
         
-        // Daily Check-ins Table
         try db?.run(checkIns.create(ifNotExists: true) { t in
             t.column(id, primaryKey: .autoincrement)
             t.column(userId)
@@ -97,7 +103,6 @@ class DatabaseService {
             t.column(isComplete)
         })
 
-        // Conversation Flow Table (For session persistence)
         try db?.run(flows.create(ifNotExists: true) { t in
             t.column(sessionId, primaryKey: true)
             t.column(userId)
@@ -106,7 +111,6 @@ class DatabaseService {
             t.column(isComplete)
         })
 
-        // Messages Table
         try db?.run(messages.create(ifNotExists: true) { t in
             t.column(id, primaryKey: .autoincrement)
             t.column(sessionId)
@@ -133,9 +137,18 @@ class DatabaseService {
             t.column(timestamp)
             t.column(scheduledTime)
         })
+        
+        try db?.run(articles.create(ifNotExists: true) { t in
+            t.column(id, primaryKey: .autoincrement)
+            t.column(title)
+            t.column(summary)
+            t.column(content)
+            t.column(category)
+            t.column(articleType)
+            t.column(imageName)
+        })
     }
 
-    // Check-In Logic
     func createCheckIn(checkIn: DailyCheckIn) throws -> Bool {
         let insert = checkIns.insert(
             userId <- checkIn.userId,
@@ -152,7 +165,6 @@ class DatabaseService {
         return true
     }
 
-    //Conversation & Messaging Logic
     func saveMessage(message: ChatMessage) throws -> Bool {
         let insert = messages.insert(
             sessionId <- message.sessionId,
@@ -167,7 +179,6 @@ class DatabaseService {
     func updateConversationFlow(sessionId idValue: String, currentStep step: ConversationStep, tempData data: [String: String]) throws {
         let flowRecord = flows.filter(sessionId == idValue)
         
-        // Convert Dictionary to JSON String for storage
         let jsonData = try JSONEncoder().encode(data)
         let jsonString = String(data: jsonData, encoding: .utf8) ?? "{}"
 
@@ -177,7 +188,6 @@ class DatabaseService {
         )
         
         if try db?.run(update) == 0 {
-            // If no record exists, create one [cite: 13]
             try db?.run(flows.insert(
                 sessionId <- idValue,
                 userId <- 1,
@@ -212,14 +222,13 @@ class DatabaseService {
         for msg in try database.prepare(query) {
             loadedMessages.append(ChatMessage(
                 sessionId: msg[sessionId],
-                sender: msg[sender] == "cora" ? .cora : .user,
+                sender: msg[sender] == "Cora" ? .cora : .user,
                 content: msg[content]
             ))
         }
         return loadedMessages
     }
     
-    // User Methods
     func getUser(userId: Int = 1) throws -> User? {
         guard let database = db else {
             throw PulseCorError.databaseConnectionFailed
@@ -238,7 +247,6 @@ class DatabaseService {
             )
         }
         
-        // If no user exists
         let newUser = User(id: userId, name: "User")
         try database.run(users.insert(
             id <- Int64(userId),
@@ -251,7 +259,6 @@ class DatabaseService {
         return newUser
     }
 
-    // Get Recent Check-Ins
     func getRecentCheckIns(userId: Int = 1, limit: Int = 7) throws -> [DailyCheckIn] {
         guard let database = db else {
                 throw PulseCorError.databaseConnectionFailed
@@ -279,7 +286,6 @@ class DatabaseService {
         return checkInsList
     }
 
-    //Get Current Streak
     private func getCurrentStreak(userId: Int) throws -> Int {
         guard let database = db else {
                 throw PulseCorError.databaseConnectionFailed
@@ -306,7 +312,6 @@ class DatabaseService {
         return streak
     }
 
-    // Get Longest Streak
     private func getLongestStreak(userId: Int) throws -> Int {
         guard let database = db else {
                 throw PulseCorError.databaseConnectionFailed
@@ -342,7 +347,6 @@ class DatabaseService {
         return max(longestStreak, currentStreak)
     }
 
-    // Get Last Check-In Date
     private func getLastCheckInDate(userId: Int) throws -> Date? {
         guard let database = db else {
                 throw PulseCorError.databaseConnectionFailed
@@ -365,7 +369,6 @@ class DatabaseService {
             }
         let query = flows.filter(isComplete == false).limit(1)
         if let row = try database.pluck(query) {
-            // Decode JSON string back to Dictionary
             let data = row[tempData].data(using: .utf8)!
             let decodedData = try JSONDecoder().decode([String: String].self, from: data)
             
@@ -374,14 +377,13 @@ class DatabaseService {
                 userId: row[userId],
                 flowType: .dailyCheckIn,
                 currentStep: ConversationStep(rawValue: row[currentStep]) ?? .greeting,
-                isComplete: row[isComplete], 
+                isComplete: row[isComplete],
                 tempData: decodedData
             )
         }
         return nil
     }
     
-    //dashboard main count
     func getWeeklyCount(userId: Int = 1) throws -> Int{
         guard let database = db else{
             throw PulseCorError.databaseConnectionFailed
@@ -415,7 +417,6 @@ class DatabaseService {
             lastCheckInDate <- lastCheckIn
         ))
         
-        // If no user exists
         if rowsUpdated == 0 {
             try database.run(users.insert(
                 id <- Int64(userId),
@@ -547,5 +548,211 @@ class DatabaseService {
         }
         
         return checkInsList
+    }
+    
+    func hasCheckedInToday(userId: Int = 1) throws -> Bool {
+        guard let database = db else {
+            throw PulseCorError.databaseConnectionFailed
+        }
+        
+        let calendar = Calendar.current
+        let startOfToday = calendar.startOfDay(for: Date())
+        let endOfToday = calendar.date(byAdding: .day, value: 1, to: startOfToday)!
+        
+        let query = checkIns
+            .filter(self.userId == userId)
+            .filter(isComplete == true)
+            .filter(date >= startOfToday && date < endOfToday)
+        
+        return try database.scalar(query.count) > 0
+    }
+    
+    func getArticlesByCategory(category: ArticleCategory, type: ArticleType? = nil) throws -> [Article] {
+        guard let database = db else {
+            throw PulseCorError.databaseConnectionFailed
+        }
+        
+        var query = articles.filter(self.category == category.rawValue)
+        
+        if let type = type {
+            query = query.filter(articleType == type.rawValue)
+        }
+        
+        var articlesList: [Article] = []
+        
+        for row in try database.prepare(query) {
+            articlesList.append(Article(
+                id: Int(row[id]),
+                title: row[title],
+                summary: row[summary],
+                content: row[content],
+                category: ArticleCategory(rawValue: row[self.category]) ?? .generalWellness,
+                articleType: ArticleType(rawValue: row[articleType]) ?? .helpfulArticle,
+                imageName: row[imageName]
+            ))
+        }
+        
+        return articlesList
+    }
+
+    func getRandomArticles(category: ArticleCategory? = nil, type: ArticleType? = nil, limit: Int = 3) throws -> [Article] {
+        guard let database = db else {
+            throw PulseCorError.databaseConnectionFailed
+        }
+        
+        var query = articles.select(articles[*])
+        
+        if let category = category {
+            query = query.filter(self.category == category.rawValue)
+        }
+        
+        if let type = type {
+            query = query.filter(articleType == type.rawValue)
+        }
+        
+        query = query.order(Expression<Int>.random()).limit(limit)
+        
+        var articlesList: [Article] = []
+        
+        for row in try database.prepare(query) {
+            articlesList.append(Article(
+                id: Int(row[id]),
+                title: row[title],
+                summary: row[summary],
+                content: row[content],
+                category: ArticleCategory(rawValue: row[self.category]) ?? .generalWellness,
+                articleType: ArticleType(rawValue: row[articleType]) ?? .helpfulArticle,
+                imageName: row[imageName]
+            ))
+        }
+        
+        return articlesList
+    }
+
+    func getAllGeneralArticles() throws -> [Article] {
+        guard let database = db else {
+            throw PulseCorError.databaseConnectionFailed
+        }
+        
+        let query = articles.filter(category == ArticleCategory.generalWellness.rawValue)
+        
+        var articlesList: [Article] = []
+        
+        for row in try database.prepare(query) {
+            articlesList.append(Article(
+                id: Int(row[id]),
+                title: row[title],
+                summary: row[summary],
+                content: row[content],
+                category: ArticleCategory(rawValue: row[self.category]) ?? .generalWellness,
+                articleType: ArticleType(rawValue: row[articleType]) ?? .helpfulArticle,
+                imageName: row[imageName]
+            ))
+        }
+        
+        return articlesList
+    }
+    
+    func seedInitialArticles() throws {
+        guard let database = db else {
+            throw PulseCorError.databaseConnectionFailed
+        }
+        
+        let existingCount = try database.scalar(articles.count)
+        if existingCount > 0 { return }
+        
+        func loadArticleContent(filename: String) -> String {
+            if let filepath = Bundle.main.path(forResource: filename, ofType: "txt"),
+               let content = try? String(contentsOfFile: filepath, encoding: .utf8) {
+                return content
+            }
+            return "Content not available."
+        }
+        
+        let sampleArticles: [(title: String, summary: String, content: String, category: String, type: String, image: String?)] = [
+            (
+                title: "Improve your sleep",
+                summary: "Better sleep changes everything",
+                content: loadArticleContent(filename: "improve_sleep"),
+                category: ArticleCategory.sleep.rawValue,
+                type: ArticleType.helpfulArticle.rawValue,
+                image: "improve_sleep"
+            ),
+            (
+                title: "Move more, sit less",
+                summary: "Simple ways to stay active",
+                content: loadArticleContent(filename: "move_more"),
+                category: ArticleCategory.generalWellness.rawValue,
+                type: ArticleType.helpfulArticle.rawValue,
+                image: "move_more"
+            ),
+            (
+                title: "Practice mindfulness",
+                summary: "Find calm in your day",
+                content: loadArticleContent(filename: "mindfulness"),
+                category: ArticleCategory.generalWellness.rawValue,
+                type: ArticleType.helpfulArticle.rawValue,
+                image: "mindfulness"
+            ),
+            (
+                title: "Holistic heart care",
+                summary: "Taking care of your heart naturally",
+                content: loadArticleContent(filename: "heart_care"),
+                category: ArticleCategory.cardiovascular.rawValue,
+                type: ArticleType.helpfulArticle.rawValue,
+                image: "heart_care"
+            ),
+            (
+                title: "Prioritise your health",
+                summary: "Make yourself a priority",
+                content: loadArticleContent(filename: "prioritise_health"),
+                category: ArticleCategory.generalWellness.rawValue,
+                type: ArticleType.helpfulArticle.rawValue,
+                image: "prioritise_health"
+            ),
+            (
+                title: "Fuel your body",
+                summary: "Nutrition for better energy",
+                content: loadArticleContent(filename: "fuel_body"),
+                category: ArticleCategory.generalWellness.rawValue,
+                type: ArticleType.helpfulArticle.rawValue,
+                image: "fuel_body"
+            ),
+            (
+                title: "What are heart disease risk factors?",
+                summary: "Understanding and reducing your risk",
+                content: loadArticleContent(filename: "heart_disease_risk"),
+                category: ArticleCategory.cardiovascular.rawValue,
+                type: ArticleType.helpfulArticle.rawValue,
+                image: "heart_disease_risk"
+            ),
+            (
+                title: "Can stress affect my body?",
+                summary: "Understanding the stress-body connection",
+                content: loadArticleContent(filename: "stress_body"),
+                category: ArticleCategory.generalWellness.rawValue,
+                type: ArticleType.helpfulArticle.rawValue,
+                image: "stress_body"
+            ),
+            (
+                title: "How much water should I have?",
+                summary: "Staying properly hydrated",
+                content: loadArticleContent(filename: "water_should"),
+                category: ArticleCategory.generalWellness.rawValue,
+                type: ArticleType.helpfulArticle.rawValue,
+                image: "water_should"
+            )
+        ]
+        
+        for article in sampleArticles {
+            try database.run(articles.insert(
+                title <- article.title,
+                summary <- article.summary,
+                content <- article.content,
+                category <- article.category,
+                articleType <- article.type,
+                imageName <- article.image
+            ))
+        }
     }
 }

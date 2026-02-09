@@ -21,7 +21,7 @@ class ChatViewModel: ObservableObject {
     // Properties
     private let databaseService: DatabaseService
     private var currentSessionId: String
-    private var currentFlow: ConversationFlow?
+    var currentFlow: ConversationFlow?
     private var cancellables = Set<AnyCancellable>()
     
     // Initialisation
@@ -32,7 +32,8 @@ class ChatViewModel: ObservableObject {
             if let activeFlow = try databaseService.getActiveConversation() {
                 self.currentSessionId = activeFlow.sessionId
                 self.currentFlow = activeFlow
-                loadExistingMessages()
+                self.messages = try databaseService.getMessages(sessionId: activeFlow.sessionId)
+                restoreQuickRepliesForCurrentStep()
             } else {
                 self.currentSessionId = UUID().uuidString
             }
@@ -40,9 +41,6 @@ class ChatViewModel: ObservableObject {
             print("Failed to load active conversation: \(error)")
             self.currentSessionId = UUID().uuidString
         }
-        if currentFlow != nil {
-                loadExistingMessages()
-            }
     }
     
     func startDailyCheckIn() {
@@ -156,7 +154,6 @@ class ChatViewModel: ObservableObject {
         case .askActivity:
             flow.tempData["activity"] = response
             moveToNextStep(.completion, flow: &flow)
-            // You can add a specific helper for this too!
             sendCoraMessage(content: getActivityResponse(response))
             delayCoraAction {
                 self.completeCheckIn()
@@ -187,7 +184,7 @@ class ChatViewModel: ObservableObject {
             try updateUserStreak()
             
             let streak = try databaseService.getUser()?.currentStreak ?? 1
-            sendCoraMessage(content: "Perfect! You're on a \(streak)-day streak! 🎉 See you tomorrow!")
+            sendCoraMessage(content: "Perfect, you're all done for the day! You're on a \(streak)-day streak! 🎉 See you tomorrow!")
             
             completeConversation(flow: &flow)
         } catch {
@@ -204,7 +201,6 @@ class ChatViewModel: ObservableObject {
 
     //Scripts
     private func getSleepQualityResponse(_ quality: String) -> String {
-        //converts string to the Enum to use the power of switch cases
         guard let qualityEnum = SleepQuality(rawValue: quality) else {
             return "Thanks for sharing how you slept! 😴"
         }
@@ -235,7 +231,6 @@ class ChatViewModel: ObservableObject {
     }
     
     private func getWaterResponse(_ water: String) -> String {
-        // Exact mapping from your requirements image
         switch water {
         case WaterIntake.veryHigh.rawValue: // "7+ glasses"
             return "Wow! You're absolutely crushing hydration today!"
@@ -366,6 +361,29 @@ class ChatViewModel: ObservableObject {
             else { newStreak = user.currentStreak }
         }
         try databaseService.updateUserStreak(userId: user.id, currentStreak: newStreak, longestStreak: max(user.longestStreak, newStreak), lastCheckIn: Date())
+    }
+    
+    func restoreQuickRepliesForCurrentStep() {
+        guard let flow = currentFlow else { return }
+        
+        switch flow.currentStep {
+        case .greeting:
+            currentQuickReplies = ["Yes, let's do it!", "Not right now"]
+        case .askSleepQuality:
+            currentQuickReplies = SleepQuality.allCases.map { $0.rawValue }
+        case .askSleepHours:
+            currentQuickReplies = SleepHours.allCases.map { $0.rawValue }
+        case .askWater:
+            currentQuickReplies = WaterIntake.allCases.map { $0.rawValue }
+        case .askStress:
+            currentQuickReplies = StressLevel.allCases.map { $0.rawValue }
+        case .askEnergy:
+            currentQuickReplies = EnergyLevel.allCases.map { $0.rawValue }
+        case .askActivity:
+            currentQuickReplies = ActivityLevel.allCases.map { $0.rawValue }
+        default:
+            currentQuickReplies = []
+        }
     }
 }
 
