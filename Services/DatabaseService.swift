@@ -46,6 +46,17 @@ class DatabaseService {
     private let longestStreak = Expression<Int>("longest_streak")
     private let lastCheckInDate = Expression<Date?>("last_check_in_date")
     
+    //Medication Columns
+    private let medications = Table("medications")
+    private let medicationLogs = Table("medication_logs")
+    private let medicationId = Expression<Int>("medication_id")
+    private let dosage = Expression<String>("dosage")
+    private let frequency = Expression<String>("frequency")
+    private let reminderTimes = Expression<String?>("reminder_times")
+    private let isActive = Expression<Bool>("is_active")
+    private let status = Expression<String>("status")
+    private let scheduledTime = Expression<String>("scheduled_time")
+    
     private init() {
         setupDatabase()
     }
@@ -102,6 +113,25 @@ class DatabaseService {
             t.column(sender)
             t.column(content)
             t.column(timestamp)
+        })
+        
+        try db?.run(medications.create(ifNotExists: true) { t in
+            t.column(id, primaryKey: .autoincrement)
+            t.column(userId)
+            t.column(name)
+            t.column(dosage)
+            t.column(frequency)
+            t.column(reminderTimes)
+            t.column(isActive)
+            t.column(createdAt)
+        })
+
+        try db?.run(medicationLogs.create(ifNotExists: true) { t in
+            t.column(id, primaryKey: .autoincrement)
+            t.column(medicationId)
+            t.column(status)
+            t.column(timestamp)
+            t.column(scheduledTime)
         })
     }
 
@@ -249,7 +279,7 @@ class DatabaseService {
         return checkInsList
     }
 
-    // Helper: Get Current Streak
+    //Get Current Streak
     private func getCurrentStreak(userId: Int) throws -> Int {
         guard let database = db else {
                 throw PulseCorError.databaseConnectionFailed
@@ -276,7 +306,7 @@ class DatabaseService {
         return streak
     }
 
-    // Helper: Get Longest Streak
+    // Get Longest Streak
     private func getLongestStreak(userId: Int) throws -> Int {
         guard let database = db else {
                 throw PulseCorError.databaseConnectionFailed
@@ -312,7 +342,7 @@ class DatabaseService {
         return max(longestStreak, currentStreak)
     }
 
-    // Helper: Get Last Check-In Date
+    // Get Last Check-In Date
     private func getLastCheckInDate(userId: Int) throws -> Date? {
         guard let database = db else {
                 throw PulseCorError.databaseConnectionFailed
@@ -396,5 +426,126 @@ class DatabaseService {
                 lastCheckInDate <- lastCheckIn
             ))
         }
+    }
+    
+    func createMedication(medication: Medication) throws -> Int64 {
+        guard let database = db else {
+            throw PulseCorError.databaseConnectionFailed
+        }
+        
+        let reminderTimesJSON = medication.reminderTimes?.joined(separator: ",") ?? ""
+        
+        let insert = medications.insert(
+            userId <- medication.userId,
+            name <- medication.name,
+            dosage <- medication.dosage,
+            frequency <- medication.frequency,
+            reminderTimes <- reminderTimesJSON,
+            isActive <- medication.isActive,
+            createdAt <- medication.createdAt
+        )
+        
+        return try database.run(insert)
+    }
+
+    func getMedications(userId: Int = 1) throws -> [Medication] {
+        guard let database = db else {
+            throw PulseCorError.databaseConnectionFailed
+        }
+        
+        var medicationList: [Medication] = []
+        let query = medications.filter(self.userId == userId && isActive == true)
+        
+        for row in try database.prepare(query) {
+            let timesString = row[reminderTimes] ?? ""
+            let timesArray = timesString.isEmpty ? [] : timesString.components(separatedBy: ",")
+            
+            medicationList.append(Medication(
+                id: Int(row[id]),
+                userId: row[self.userId],
+                name: row[name],
+                dosage: row[dosage],
+                frequency: row[frequency],
+                reminderTimes: timesArray,
+                isActive: row[isActive],
+                createdAt: row[createdAt]
+            ))
+        }
+        
+        return medicationList
+    }
+    
+    func deleteMedication(medicationId: Int) throws {
+        guard let database = db else {
+            throw PulseCorError.databaseConnectionFailed
+        }
+        
+        let medication = medications.filter(id == Int64(medicationId))
+        try database.run(medication.update(isActive <- false))
+    }
+
+    func logMedicationStatus(medicationId: Int, status: MedicationStatus, scheduledTime: String) throws {
+        guard let database = db else {
+            throw PulseCorError.databaseConnectionFailed
+        }
+        
+        let insert = medicationLogs.insert(
+            self.medicationId <- medicationId,
+            self.status <- status.rawValue,
+            timestamp <- Date(),
+            self.scheduledTime <- scheduledTime
+        )
+        
+        try database.run(insert)
+    }
+    
+    func updateMedication(medicationId: Int, name: String, dosage: String, frequency: String, reminderTimes: [String]) throws {
+        guard let database = db else {
+            throw PulseCorError.databaseConnectionFailed
+        }
+        
+        let medication = medications.filter(id == Int64(medicationId))
+        let reminderTimesJSON = reminderTimes.joined(separator: ",")
+        
+        try database.run(medication.update(
+            self.name <- name,
+            self.dosage <- dosage,
+            self.frequency <- frequency,
+            self.reminderTimes <- reminderTimesJSON
+        ))
+    }
+    
+    func getLast30DaysCheckIns(userId: Int = 1) throws -> [DailyCheckIn] {
+        guard let database = db else {
+            throw PulseCorError.databaseConnectionFailed
+        }
+        
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        let thirtyDaysAgo = calendar.date(byAdding: .day, value: -30, to: today)!
+        
+        let query = checkIns
+            .filter(self.userId == userId)
+            .filter(date >= thirtyDaysAgo && date <= today)
+            .order(date.asc)
+        
+        var checkInsList: [DailyCheckIn] = []
+        
+        for row in try database.prepare(query) {
+            checkInsList.append(DailyCheckIn(
+                id: Int(row[id]),
+                userId: row[self.userId],
+                date: row[date],
+                sleepQuality: row[sleepQuality].flatMap { SleepQuality(rawValue: $0) },
+                sleepHours: row[sleepHours].flatMap { SleepHours(rawValue: $0) },
+                waterGlasses: row[waterGlasses].flatMap { WaterIntake(rawValue: $0) },
+                stressLevel: row[stressLevel].flatMap { StressLevel(rawValue: $0) },
+                energyLevel: row[energyLevel].flatMap { EnergyLevel(rawValue: $0) },
+                activityLevel: row[activityLevel].flatMap { ActivityLevel(rawValue: $0) },
+                isComplete: row[isComplete]
+            ))
+        }
+        
+        return checkInsList
     }
 }

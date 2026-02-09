@@ -6,13 +6,13 @@
 import Foundation
 
 //The main schedule/setting for a medication
-struct Medication: Codable {
+struct Medication: Codable, Identifiable {
     let id: Int?
     let userId: Int
     let name: String
     let dosage: String
     let frequency: String
-    var reminderTimes: [String]? // "08:00", "20:00"
+    var reminderTimes: [String]?
     var isActive: Bool
     let createdAt: Date
     

@@ -19,6 +19,7 @@ enum PulseCorError: Error, LocalizedError {
     // HealthKit Errors (For Week 14-15)
     case healthKitNotAvailable
     case healthDataDenied
+    case healthKitAuthFailed(String)
     
     // A user-friendly description for the UI/Cora
     var errorDescription: String? {
@@ -35,4 +36,3 @@ enum PulseCorError: Error, LocalizedError {
             return "Something went wrong. Let's try that again."
         }
     }
-}
