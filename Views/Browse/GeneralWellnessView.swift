@@ -1,0 +1,6 @@
+//
+//  GeneralWellnessView.swift
+//  PulseCor
+//
+//
+
