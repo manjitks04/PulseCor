@@ -13,8 +13,8 @@ struct ChatView: View {
     @State private var weeklyCount: Int = 0
     @State private var last30DaysData: [DailyCheckIn] = []
     @Query private var users: [User]
-
-
+    
+    
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -22,16 +22,14 @@ struct ChatView: View {
                     VStack(spacing: 24) {
                         HeroCheckInCard(userName: users.first?.name ?? "there")
                             .padding(.top, 15)
-
+                        
                         DailyStreakTracker(currentDay: currentStreak)
                         
                         Spacer(minLength: 20)
                     }
                     .padding(.horizontal, 16)
                     .padding(.top, 75)
-                    .onAppear {
-                        loadData()
-                    }
+                    
                     
                     if let currentUser = users.first {
                         ProfileButton(user: currentUser)
@@ -42,6 +40,9 @@ struct ChatView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(Color("MainBG"))
+            .onAppear(){
+                loadData()
+            }
             .refreshable {
                 loadData()
             }

@@ -104,6 +104,20 @@ struct DashboardView: View {
                             StreakCard(currentStreak: viewModel.currentStreak)
                         }
                         .padding(.horizontal)
+                        
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("For you today")
+                                .font(.system(size: 22, weight: .semibold))
+                                .foregroundColor(Color("MainText"))
+                                .padding(.horizontal)
+                            
+                            HStack(spacing: 8) {
+                                ForEach(viewModel.featuredArticles) { article in
+                                    DashboardArticleCard(article: article)
+                                }
+                            }
+                            .padding(.horizontal)
+                        }
                     }
                     .onAppear {
                         checkTodayStatus()
@@ -124,6 +138,9 @@ struct DashboardView: View {
                     modelContext.insert(tempUser)
                 }
                 
+                viewModel.loadDashboardData()
+            }
+            .onAppear(){
                 viewModel.loadDashboardData()
             }
         }
@@ -149,6 +166,46 @@ struct DashboardView: View {
         }
     }
 }
+
+struct DashboardArticleCard: View {
+    let article: Article
+    
+    var body: some View {
+        NavigationLink(destination: ArticleDetailView(article: article)) {
+            ZStack(alignment: .bottomLeading) {
+                if let imageName = article.imageName {
+                    Image(imageName)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(height: 130)
+                        .clipped()
+                } else {
+                    Color.gray.opacity(0.3)
+                        .frame(height: 130)
+                }
+                
+                LinearGradient(
+                    gradient: Gradient(colors: [.clear, .black.opacity(0.8)]),
+                    startPoint: .center,
+                    endPoint: .bottom
+                )
+                
+                Text(article.title)
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundColor(.white)
+                    .lineLimit(2)
+                    .padding(12)
+            }
+            .frame(height: 130)
+            .cornerRadius(16)
+        }
+        .buttonStyle(PlainButtonStyle())
+    }
+}
+
+
+
+
 
 #Preview("Full Dashboard") {
     let config = ModelConfiguration(isStoredInMemoryOnly: true)

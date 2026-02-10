@@ -18,6 +18,8 @@ class DashboardViewModel: ObservableObject {
     @Published var averageWaterGlasses: Double = 0
     @Published var errorMessage: String?
     
+    @Published var featuredArticles: [Article] = []
+    
     private let databaseService: DatabaseService
     
     //Initialisation
@@ -40,6 +42,13 @@ class DashboardViewModel: ObservableObject {
             
             //recent check-ins for the chart/averages
             recentCheckIns = try databaseService.getRecentCheckIns(limit: 7)
+            
+            // Load 3 random articles for dashboard
+            featuredArticles = try databaseService.getRandomArticles(
+                category: nil,
+                type: .helpfulArticle,
+                limit: 3
+            )
             
             //process the data for the UI
             calculateAverages()
