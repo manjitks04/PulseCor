@@ -87,7 +87,3 @@ struct DailyStreakTracker: View {
     }
 }
 
-#Preview {
-    DailyStreakTracker(currentDay: 7)
-        .padding()
-}
