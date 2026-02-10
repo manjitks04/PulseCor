@@ -362,6 +362,16 @@ class ChatViewModel: ObservableObject {
         }
         try databaseService.updateUserStreak(userId: user.id, currentStreak: newStreak, longestStreak: max(user.longestStreak, newStreak), lastCheckIn: Date())
     }
+    //        let actualStreak = try databaseService.getCurrentStreak(userId: user.id)
+    //          let longestStreak = try databaseService.getLongestStreak(userId: user.id)
+    //
+    //          try databaseService.updateUserStreak(
+    //              userId: user.id,
+    //              currentStreak: actualStreak,
+    //              longestStreak: longestStreak,
+    //              lastCheckIn: Date()
+    //          )
+    //      }
     
     func restoreQuickRepliesForCurrentStep() {
         guard let flow = currentFlow else { return }

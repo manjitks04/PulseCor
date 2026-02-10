@@ -92,6 +92,8 @@ struct HeroCheckInCard: View {
         do {
             hasCheckedInToday = try DatabaseService.shared.hasCheckedInToday()
             isCheckingStatus = false
+//            hasCheckedInToday = false
+//            isCheckingStatus = false
         } catch {
             print("Error checking today's status: \(error)")
             hasCheckedInToday = false
