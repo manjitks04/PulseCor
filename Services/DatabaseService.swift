@@ -286,7 +286,7 @@ class DatabaseService {
         return checkInsList
     }
 
-    private func getCurrentStreak(userId: Int) throws -> Int {
+     func getCurrentStreak(userId: Int) throws -> Int {
         guard let database = db else {
                 throw PulseCorError.databaseConnectionFailed
             }
@@ -312,7 +312,7 @@ class DatabaseService {
         return streak
     }
 
-    private func getLongestStreak(userId: Int) throws -> Int {
+     func getLongestStreak(userId: Int) throws -> Int {
         guard let database = db else {
                 throw PulseCorError.databaseConnectionFailed
             }
