@@ -31,7 +31,11 @@ struct ContentView: View {
                 .tabItem {
                     Label("PulseCor", systemImage: "checkmark.shield")
                 }
-
+            
+            HealthStepsView()
+                    .tabItem {
+                        Label("Steps", systemImage: "figure.walk")
+                    }
         }
         .background(Color("MainBG"))
         .preferredColorScheme(isDarkMode ? .dark : .light)

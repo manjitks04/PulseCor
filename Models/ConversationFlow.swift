@@ -15,8 +15,6 @@ struct ConversationFlow: Codable {
     let startedAt: Date
     var completedAt: Date?
     
-    // Temporary data storage (e.g., "sleepHours": "7-8")
-    // This is vital for the "Skip" or "Not now" feature in your MVP doc
     var tempData: [String: String]
     
     // Initializer
@@ -49,10 +47,8 @@ enum FlowType: String, Codable, CaseIterable {
 }
 
 enum ConversationStep: String, Codable, CaseIterable {
-    // Onboarding
     case welcome, getName, healthKitAuth
     
-    // Daily Check-in (Matches your Cora Conversational Flow.docx)
     case greeting
     case askSleepQuality
     case askSleepHours
@@ -63,10 +59,8 @@ enum ConversationStep: String, Codable, CaseIterable {
     case askActivity
     case askSymptoms
     
-    // Medication (Phase 2 feature)
     case medReminder, medActionTaken
     
-    // General
     case completion
 }
 

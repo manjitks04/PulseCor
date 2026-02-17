@@ -3,7 +3,6 @@
 //  PulseCor
 //
 //
-
 import SwiftUI
 
 struct ConversationView: View {
@@ -21,22 +20,15 @@ struct ConversationView: View {
                                 UserMessageBubble(message: message.content)
                             }
                         }
-                        
-                        if viewModel.isTyping {
-                            TypingIndicator()
-                        }
+                        if viewModel.isTyping { TypingIndicator() }
                     }
                     .id("bottomOfMessages")
                 }
                 .onChange(of: viewModel.messages.count) {
-                    withAnimation {
-                        proxy.scrollTo("bottomOfMessages", anchor: .bottom)
-                    }
+                    withAnimation { proxy.scrollTo("bottomOfMessages", anchor: .bottom) }
                 }
                 .onAppear {
-                    withAnimation {
-                        proxy.scrollTo("bottomOfMessages", anchor: .bottom)
-                    }
+                    withAnimation { proxy.scrollTo("bottomOfMessages", anchor: .bottom) }
                 }
             }
             
@@ -50,18 +42,15 @@ struct ConversationView: View {
         .navigationBarTitleDisplayMode(.inline)
         .background(Color("MainBG"))
         .onAppear {
-            if viewModel.messages.isEmpty {
-                viewModel.startDailyCheckIn()
-            }
+            if viewModel.messages.isEmpty { viewModel.startDailyCheckIn() }
         }
     }
 }
 
 struct CoraMessageBubble: View {
     let message: String
-    
     var body: some View {
-        HStack{
+        HStack {
             Text(message)
                 .padding(12)
                 .background(Color("CardBG"))
@@ -74,9 +63,8 @@ struct CoraMessageBubble: View {
 
 struct UserMessageBubble: View {
     let message: String
-    
     var body: some View {
-        HStack{
+        HStack {
             Spacer()
             Text(message)
                 .padding(12)
@@ -98,12 +86,7 @@ struct TypingIndicator: View {
                         .fill(Color.gray)
                         .frame(width: 8, height: 8)
                         .scaleEffect(animating ? 1.0 : 0.5)
-                        .animation(
-                            Animation.easeInOut(duration: 0.28)
-                                .repeatForever()
-                                .delay(Double(index) * 0.3),
-                            value: animating
-                        )
+                        .animation(Animation.easeInOut(duration: 0.28).repeatForever().delay(Double(index) * 0.3), value: animating)
                 }
             }
             .padding(12)

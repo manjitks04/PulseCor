@@ -50,7 +50,6 @@ class DashboardViewModel: ObservableObject {
                 limit: 3
             )
             
-            //process the data for the UI
             calculateAverages()
             
         } catch let error as PulseCorError {
@@ -83,14 +82,13 @@ class DashboardViewModel: ObservableObject {
         
         // -avg water
         let waterValues = recentCheckIns.compactMap { checkIn -> Double? in
-            // Now using the Enum property 'waterGlasses'
             guard let intake = checkIn.waterGlasses else { return nil }
             
             switch intake {
-            case .veryHigh: return 8.0  // Reprsenting "7+ glasses"
-            case .high:     return 5.5  // Representing "5-6 glasses"
-            case .moderate: return 3.5  // Representing "3-4 glasses"
-            case .low:      return 1.0  // Representing "0-2 glasses"
+            case .veryHigh: return 8.0
+            case .high:     return 5.5
+            case .moderate: return 3.5
+            case .low:      return 1.0
             }
         }
         

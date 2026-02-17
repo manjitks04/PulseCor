@@ -9,7 +9,6 @@ struct AccessibilityStatementView: View {
     var body: some View {
         ScrollView {
             Text("Accessibility Statement TO DO ")
-                .padding()
         }
         .background(Color("MainBG"))
         .navigationTitle("Accessibility Statement")

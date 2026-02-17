@@ -14,16 +14,7 @@ struct HeroCheckInCard: View {
     var body: some View {
         ZStack(alignment: .leading) {
             Circle()
-                .fill(
-                    LinearGradient(
-                        colors: [
-                            Color("AccentCoral").opacity(0.8),
-                            Color("AccentPink").opacity(0.6)
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
+                .fill(LinearGradient(colors: [Color("AccentCoral").opacity(0.8), Color("AccentPink").opacity(0.6)], startPoint: .topLeading, endPoint: .bottomTrailing))
                 .frame(width: 280, height: 280)
                 .offset(x: -40, y: -20)
                 .blur(radius: 2)
@@ -31,11 +22,11 @@ struct HeroCheckInCard: View {
             VStack(alignment: .leading, spacing: 12) {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Hi there, \(userName)")
-                        .font(.system(size: 36, weight: .bold))
+                        .font(.appHeroCardTitle)
                         .foregroundColor(.white)
                     
                     Text("Ready to check in with Cora?")
-                        .font(.system(size: 24, weight: .semibold))
+                        .font(.appTitle2Semibold)
                         .foregroundColor(.white)
                 }
                 .padding(.top, 20)
@@ -49,7 +40,7 @@ struct HeroCheckInCard: View {
                 } else {
                     NavigationLink(destination: destinationView()) {
                         Text("Let's go!")
-                            .font(.system(size: 20, weight: .semibold))
+                            .font(.appSubtitleSemibold)
                             .foregroundColor(Color("AccentCoral"))
                             .frame(maxWidth: .infinity)
                             .frame(height: 56)
@@ -63,16 +54,7 @@ struct HeroCheckInCard: View {
         }
         .frame(height: 200)
         .frame(maxWidth: .infinity)
-        .background(
-            LinearGradient(
-                colors: [
-                    Color("AccentCoral"),
-                    Color("AccentPink")
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        )
+        .background(LinearGradient(colors: [Color("AccentCoral"), Color("AccentPink")], startPoint: .topLeading, endPoint: .bottomTrailing))
         .cornerRadius(24)
         .onAppear {
             checkTodayStatus()

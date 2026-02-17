@@ -177,11 +177,11 @@ struct DashboardArticleCard: View {
                     Image(imageName)
                         .resizable()
                         .aspectRatio(contentMode: .fill)
-                        .frame(height: 130)
+                        .frame(width: 130, height: 200)
                         .clipped()
                 } else {
                     Color.gray.opacity(0.3)
-                        .frame(height: 130)
+                    .frame(width: 130, height: 200)
                 }
                 
                 LinearGradient(
@@ -193,10 +193,10 @@ struct DashboardArticleCard: View {
                 Text(article.title)
                     .font(.system(size: 14, weight: .bold))
                     .foregroundColor(.white)
-                    .lineLimit(2)
+                    .lineLimit(nil)
                     .padding(12)
             }
-            .frame(height: 130)
+            .frame(width: 130, height: 200)
             .cornerRadius(16)
         }
         .buttonStyle(PlainButtonStyle())

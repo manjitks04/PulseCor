@@ -2,7 +2,6 @@
 //  ProfileButton.swift
 //  PulseCor
 //
-////
 import SwiftUI
 
 struct ProfileButton: View {
@@ -15,15 +14,12 @@ struct ProfileButton: View {
         } label: {
             Image(systemName: "person.fill")
                 .foregroundColor(.gray)
-                .font(.system(size: 20))
+                .font(.appSubtitle)
                 .frame(width: 50, height: 50)
-                .background(
-                    Circle()
-                        .fill(Color("LightGreen"))
-                )
+                .background(Circle().fill(Color("LightGreen")))
         }
         .buttonStyle(PlainButtonStyle())
-        .fullScreenCover(isPresented: $showingSettings){
+        .fullScreenCover(isPresented: $showingSettings) {
             SettingsView()
         }
     }

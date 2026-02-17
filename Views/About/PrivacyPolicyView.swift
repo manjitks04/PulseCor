@@ -12,5 +12,8 @@ struct PrivacyPolicyView: View {
                 .padding()
         }
         .navigationTitle("Privacy Policy")
+        .background(Color("MainBG"))
+        .toolbarBackground(Color("MainBG"), for: .navigationBar)
+        .toolbarBackground(.visible, for: .navigationBar)
     }
 }

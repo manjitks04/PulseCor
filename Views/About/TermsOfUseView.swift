@@ -12,5 +12,8 @@ struct TermsOfUseView: View {
                 .padding()
         }
         .navigationTitle("Terms of Use")
+        .background(Color("MainBG"))
+        .toolbarBackground(Color("MainBG"), for: .navigationBar)
+        .toolbarBackground(.visible, for: .navigationBar)
     }
 }

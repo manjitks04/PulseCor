@@ -25,7 +25,7 @@ class HealthKitService{
     }
     
     //fetches step count data
-    private func fetchSteps(since date: Date, context: ModelContext){
+    func fetchSteps(since date: Date, context: ModelContext){
         let stepsQuantityType = HKObjectType.quantityType(forIdentifier: .stepCount)!
         let predicate = HKQuery.predicateForSamples(withStart: date, end: Date(), options: .strictStartDate)
         let query = HKStatisticsQuery(quantityType: stepsQuantityType, quantitySamplePredicate: predicate, options: .cumulativeSum) { _, result, error in
@@ -47,7 +47,7 @@ class HealthKitService{
     }
     
     //fetches heart rate data
-    private func fetchHeartRate(since date: Date, context: ModelContext) {
+    func fetchHeartRate(since date: Date, context: ModelContext) {
         let hrType = HKQuantityType.quantityType(forIdentifier: .heartRate)!
         let predicate = HKQuery.predicateForSamples(withStart: date, end: Date(), options: .strictStartDate)
         
@@ -65,7 +65,7 @@ class HealthKitService{
     }
     
     //fetches heart resting data
-    private func fetchHeartRestingRate(since date: Date, context: ModelContext) {
+    func fetchHeartRestingRate(since date: Date, context: ModelContext) {
         let restingHRType = HKQuantityType.quantityType(forIdentifier: .restingHeartRate)!
         let predicate = HKQuery.predicateForSamples(withStart: date, end: Date(), options: .strictStartDate)
         
@@ -83,7 +83,7 @@ class HealthKitService{
     }
     
     //fetches heartRateVariabilitySDNN data
-    private func fetchHeartRateVar(since date: Date, context: ModelContext) {
+    func fetchHeartRateVar(since date: Date, context: ModelContext) {
         let restingHRType = HKQuantityType.quantityType(forIdentifier: .heartRateVariabilitySDNN)!
         let predicate = HKQuery.predicateForSamples(withStart: date, end: Date(), options: .strictStartDate)
         

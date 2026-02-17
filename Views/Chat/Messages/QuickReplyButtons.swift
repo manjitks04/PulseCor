@@ -14,7 +14,7 @@ struct QuickReplyButtons: View {
             ForEach(replies, id: \.self) { reply in
                 Button(action: { onSelect(reply) }) {
                     Text(reply)
-                        .font(.system(size: 16, weight: .medium))
+                        .font(.appSectionTitleMedium)
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 12)

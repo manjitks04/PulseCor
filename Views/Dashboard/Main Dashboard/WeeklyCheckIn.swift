@@ -3,7 +3,6 @@
 //  PulseCor
 //
 //
-
 import SwiftUI
 
 struct WeeklyCheckIn: View {
@@ -41,26 +40,21 @@ struct WeeklyCheckIn: View {
     
     var body: some View {
         ZStack {
-            Circle()
-                .fill(Color("LightPurple"))
-                .frame(width: 120, height: 120)
-                .offset(x: -60, y: 30)
-
+            Circle().fill(Color("LightPurple")).frame(width: 120, height: 120).offset(x: -60, y: 30)
             
-            VStack(alignment: .center,spacing: 6){
+            VStack(alignment: .center, spacing: 6) {
                 Text("This week")
                     .font(.title2)
                     .fontWeight(.semibold)
                     .foregroundColor(Color("TextBlue"))
-
-                Text ("\(completedDays) / \(totalDays) day check in's")
+                
+                Text("\(completedDays) / \(totalDays) day check in's")
                     .font(.subheadline)
                     .foregroundColor(Color("MainText"))
                 
-                HStack(spacing: 3){
-                    ForEach(0..<4, id: \.self) {index in
-                        starImage(at: index)
-                            .font(.system(size: 28))
+                HStack(spacing: 3) {
+                    ForEach(0..<4, id: \.self) { index in
+                        starImage(at: index).font(.appMediumIcon)
                     }
                 }
                 .padding(.top, 4)
@@ -73,22 +67,10 @@ struct WeeklyCheckIn: View {
         .background(Color("CardBG"))
         .cornerRadius(20)
         .overlay(
-                    RoundedRectangle(cornerRadius: 20)
-                        .strokeBorder(
-                            LinearGradient(
-                                colors: [
-                                    Color("AccentCoral"),
-                                    Color("AccentPink"),
-                                ],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            ),
-                            lineWidth: 3
-                        )
-                )
-                .shadow(color: Color("AccentCoral").opacity(0.15), radius: 12, x: 0, y: 4)
-                .shadow(color: Color.black.opacity(0.06), radius: 8, x: 0, y: 2)
-            }
-        }
-        
-    
+            RoundedRectangle(cornerRadius: 20)
+                .strokeBorder(LinearGradient(colors: [Color("AccentCoral"), Color("AccentPink")], startPoint: .leading, endPoint: .trailing), lineWidth: 3)
+        )
+        .shadow(color: Color("AccentCoral").opacity(0.15), radius: 12, x: 0, y: 4)
+        .shadow(color: Color.black.opacity(0.06), radius: 8, x: 0, y: 2)
+    }
+}

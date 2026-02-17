@@ -193,3 +193,4 @@ struct ArticleCard: View {
     }
 }
 
+//strucs to be moved to correct files later

@@ -130,15 +130,17 @@ struct SettingsView: View {
                         
                         HStack(spacing: 12) {
                             VStack(spacing: 16) {
-                                RoundedRectangle(cornerRadius: 16)
-                                    .fill(Color.white)
+                                Image("light_mode_preview")
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fit)
                                     .frame(width: 150, height: 200)
+                                    .cornerRadius(16)
                                     .overlay(
                                         RoundedRectangle(cornerRadius: 16)
                                             .stroke(isDarkMode ? Color.clear : Color("AccentCoral"), lineWidth: 2)
                                     )
-                                    .shadow(color: Color.black.opacity(0.05), radius: 5, x: 0, y: 5)
-                                
+                                    .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 5)
+
                                 Button(action: { isDarkMode = false }) {
                                     HStack(spacing: 8) {
                                         Circle()
@@ -158,14 +160,16 @@ struct SettingsView: View {
                             }
                             
                             VStack(spacing: 16) {
-                                RoundedRectangle(cornerRadius: 16)
-                                    .fill(Color.black)
+                                Image("dark_mode_preview")
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fit)
                                     .frame(width: 150, height: 200)
+                                    .cornerRadius(16)
                                     .overlay(
                                         RoundedRectangle(cornerRadius: 16)
                                             .stroke(isDarkMode ? Color("AccentCoral") : Color.clear, lineWidth: 2)
                                     )
-                                    .shadow(color: Color.black.opacity(0.05), radius: 5, x: 0, y: 5)
+                                    .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 5)
                                 
                                 Button(action: { isDarkMode = true }) {
                                     HStack(spacing: 8) {

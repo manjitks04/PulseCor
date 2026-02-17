@@ -3,6 +3,7 @@
 //  PulseCor
 //
 //
+// ArticleDetailView.swift
 import SwiftUI
 
 struct ArticleDetailView: View {
@@ -12,7 +13,6 @@ struct ArticleDetailView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                // Header Image
                 if let imageName = article.imageName {
                     Image(imageName)
                         .resizable()
@@ -22,51 +22,38 @@ struct ArticleDetailView: View {
                         .cornerRadius(16)
                 } else {
                     Rectangle()
-                        .fill(
-                            LinearGradient(
-                                colors: [Color("AccentCoral"), Color("AccentPink")],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
+                        .fill(LinearGradient(colors: [Color("AccentCoral"), Color("AccentPink")], startPoint: .topLeading, endPoint: .bottomTrailing))
                         .frame(height: 250)
                         .cornerRadius(16)
                 }
                 
                 Text(article.title)
-                    .font(.system(size: 28, weight: .bold))
+                    .font(.appTitle)
                     .foregroundColor(Color("MainText"))
                     .fixedSize(horizontal: false, vertical: true)
                 
-                // Category Badge
                 HStack {
                     Text(article.category.rawValue)
-                        .font(.system(size: 12, weight: .semibold))
+                        .font(.appBodySemibold)
                         .foregroundColor(.white)
                         .padding(.horizontal, 12)
                         .padding(.vertical, 6)
-                        .background(
-                            Capsule()
-                                .fill(Color("AccentCoral"))
-                        )
-                    
+                        .background(Capsule().fill(Color("AccentCoral")))
                     Spacer()
                 }
                 
                 if !article.summary.isEmpty {
                     Text(article.summary)
-                        .font(.system(size: 18, weight: .semibold))
+                        .font(.appBodyLargeSemibold)
                         .foregroundColor(Color("MainText").opacity(0.8))
                         .fixedSize(horizontal: false, vertical: true)
                         .padding(.vertical, 8)
                 }
                 
-                Divider()
-                    .padding(.vertical, 8)
+                Divider().padding(.vertical, 8)
                 
-                // Article Content
                 Text(article.content)
-                    .font(.system(size: 16))
+                    .font(.appLink)
                     .foregroundColor(Color("MainText"))
                     .lineSpacing(6)
                     .fixedSize(horizontal: false, vertical: true)
