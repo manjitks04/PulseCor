@@ -10,6 +10,10 @@ import SwiftData
 
 @main
 struct PulseCorApp: App {
+        init() {
+            _ = NotificationService.shared
+        }
+    
     var body: some Scene {
         WindowGroup {
             ContentView()

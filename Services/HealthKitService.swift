@@ -114,4 +114,24 @@ class HealthKitService{
         fetchHeartRestingRate(since: sevenDaysAgo, context: context)
         fetchHeartRateVar(since: sevenDaysAgo, context: context)
     }
+    
+    func startObserving(context: ModelContext) {
+        let types: [HKQuantityTypeIdentifier] = [.stepCount, .heartRate, .restingHeartRate, .heartRateVariabilitySDNN]
+        
+        for identifier in types {
+            let type = HKObjectType.quantityType(forIdentifier: identifier)!
+            let query = HKObserverQuery(sampleType: type, predicate: nil) { [weak self] _, _, error in
+                guard error == nil else { return }
+                self?.syncWeeklySummary(context: context)
+            }
+            healthStore.execute(query)
+            
+            // enables background delivery even when app is closed
+            healthStore.enableBackgroundDelivery(for: type, frequency: .hourly) { _, _ in }
+        }
+    }
+//    
+//    extension Notification.Name {
+//        static let healthKitAccessRevoked = Notification.Name("healthKitAccessRevoked")
+//    }
 }

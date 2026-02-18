@@ -4,15 +4,34 @@
 //
 //
 
-//to create and implement in order to recieve alerts within app
+//to create and implement in order to recieve alerts within app (medication, check-ins, reflections, foreground suppression logic)
 
 import UserNotifications
 import Foundation
 
-class NotificationService {
+class NotificationService: NSObject, UNUserNotificationCenterDelegate {
     static let shared = NotificationService()
     
-    private init() {}
+    private override init() {
+        super.init()
+        UNUserNotificationCenter.current().delegate = self
+    }
+    
+    func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        willPresent notification: UNNotification,
+        withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
+    ) {
+        let id = notification.request.identifier
+        
+        if id.hasPrefix("medication-") || id == "weekly-reflection" {
+            // shows even when app is open
+            completionHandler([.banner, .sound, .badge])
+        } else {
+            // suppress daily check-in app
+            completionHandler([])
+        }
+    }
     
     func requestAuthorization(completion: @escaping (Bool) -> Void) {
         let center = UNUserNotificationCenter.current()
@@ -58,7 +77,7 @@ class NotificationService {
             
             center.add(request) { error in
                 if let error = error {
-                    print("Error scheduling notification: \(error)")
+                    print("Error scheduling medication notification: \(error)")
                 }
             }
         }
@@ -76,7 +95,6 @@ class NotificationService {
     
     func scheduleDailyCheckIn(hour: Int, minute: Int, isAM: Bool) {
         let center = UNUserNotificationCenter.current()
-        
         center.removePendingNotificationRequests(withIdentifiers: ["daily-checkin"])
         
         let content = UNMutableNotificationContent()
@@ -85,10 +103,7 @@ class NotificationService {
         content.sound = .default
         
         var dateComponents = DateComponents()
-        dateComponents.hour = isAM ? hour : (hour == 12 ? 12 : hour + 12)
-        if hour == 12 && isAM {
-            dateComponents.hour = 0
-        }
+        dateComponents.hour = isAM ? (hour == 12 ? 0 : hour) : (hour == 12 ? 12 : hour + 12)
         dateComponents.minute = minute
         
         let trigger = UNCalendarNotificationTrigger(dateMatching: dateComponents, repeats: true)
@@ -107,7 +122,6 @@ class NotificationService {
     
     func scheduleWeeklyReflection(hour: Int, minute: Int, isAM: Bool) {
         let center = UNUserNotificationCenter.current()
-        
         center.removePendingNotificationRequests(withIdentifiers: ["weekly-reflection"])
         
         let content = UNMutableNotificationContent()
@@ -117,10 +131,7 @@ class NotificationService {
         
         var dateComponents = DateComponents()
         dateComponents.weekday = 1
-        dateComponents.hour = isAM ? hour : (hour == 12 ? 12 : hour + 12)
-        if hour == 12 && isAM {
-            dateComponents.hour = 0
-        }
+        dateComponents.hour = isAM ? (hour == 12 ? 0 : hour) : (hour == 12 ? 12 : hour + 12)
         dateComponents.minute = minute
         
         let trigger = UNCalendarNotificationTrigger(dateMatching: dateComponents, repeats: true)
@@ -135,5 +146,21 @@ class NotificationService {
     
     func cancelWeeklyReflection() {
         UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: ["weekly-reflection"])
+    }
+    
+    func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        didReceive response: UNNotificationResponse,
+        withCompletionHandler completionHandler: @escaping () -> Void
+    ) {
+        let id = response.notification.request.identifier
+        
+        if id == "daily-checkin" || id == "weekly-reflection" {
+            NavigationManager.shared.pendingTab = .cora
+        } else if id.hasPrefix("medication-") {
+            NavigationManager.shared.pendingTab = .pulsecor
+        }
+        
+        completionHandler()
     }
 }

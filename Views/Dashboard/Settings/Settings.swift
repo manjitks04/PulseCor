@@ -15,10 +15,11 @@ struct SettingsView: View {
     
     @State private var editedName: String = ""
     @State private var isEditingName: Bool = false
-    @AppStorage("isDarkMode") private var isDarkMode: Bool = false
     @State private var healthSyncEnabled: Bool = false
     @State private var healthAuthorizationStatus: String = "Not Connected"
-    
+    @ObservedObject private var healthManager = HealthKitManager.shared
+
+    @AppStorage("isDarkMode") private var isDarkMode: Bool = false
     @AppStorage("dailyCheckInEnabled") private var dailyCheckInEnabled: Bool = true
     @AppStorage("checkInHour") private var checkInHour: Int = 11
     @AppStorage("checkInMinute") private var checkInMinute: Int = 6
@@ -205,8 +206,8 @@ struct SettingsView: View {
                                     .font(.body)
                                     .foregroundColor(Color("MainText"))
                                 
-                                if healthSyncEnabled {
-                                    Text("Connected")
+                                if HealthKitManager.shared.isAuthorized {
+                                    Text("Connected — reading from Apple Health")
                                         .font(.caption)
                                         .foregroundColor(Color("AccentPink"))
                                 } else {
@@ -214,7 +215,7 @@ struct SettingsView: View {
                                         Image(systemName: "info.circle")
                                             .font(.caption)
                                             .foregroundColor(.pink.opacity(0.7))
-                                        Text("To fully disconnect, please visit iPhone Settings")
+                                        Text("To disconnect, open the Health app → your profile → Apps & Devices")
                                             .font(.caption)
                                             .foregroundColor(Color("AccentCoral"))
                                     }
@@ -562,23 +563,16 @@ struct SettingsView: View {
     private func requestHealthKitAuth() {
         HealthKitService.shared.requestAuth { success, error in
             DispatchQueue.main.async {
-                if success {
-                    healthSyncEnabled = true
-                    healthAuthorizationStatus = "Connected"
-                    HealthKitService.shared.syncWeeklySummary(context: modelContext)
-                } else {
-                    healthSyncEnabled = false
-                    healthAuthorizationStatus = "Failed"
-                    
-                    let pulseError = PulseCorError.healthKitAuthFailed(
-                        error?.localizedDescription ?? "Unknown error"
-                    )
-                    healthErrorMessage = pulseError.errorDescription ?? "Failed to authorize HealthKit"
-                    showingHealthError = true
+                    if !success {
+                        let pulseError = PulseCorError.healthKitAuthFailed(
+                            error?.localizedDescription ?? "Unknown error"
+                        )
+                        healthErrorMessage = pulseError.errorDescription ?? "Failed to authorize HealthKit"
+                        showingHealthError = true
+                    }
                 }
             }
         }
-    }
     
     private func scheduleDailyCheckInNotification() {
         NotificationService.shared.scheduleDailyCheckIn(
