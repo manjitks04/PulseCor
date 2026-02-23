@@ -14,12 +14,14 @@ class MedicationViewModel: ObservableObject {
     private let databaseService: DatabaseService
     private let notificationService: NotificationService
     
+    //notifications needed alongside database since reminders are tied to medications
     init(databaseService: DatabaseService = .shared, notificationService: NotificationService = .shared) {
         self.databaseService = databaseService
         self.notificationService = notificationService
         loadMedications()
     }
     
+    // fetches all active medications from the database and updates the UI
     func loadMedications() {
         do {
             medications = try databaseService.getMedications()
@@ -42,6 +44,7 @@ class MedicationViewModel: ObservableObject {
         do {
             let medicationId = try databaseService.createMedication(medication: medication)
             
+            // only schedule notifications if the user actually set reminder times
             if let times = medication.reminderTimes {
                 notificationService.scheduleMedicationReminders(
                     medicationId: Int(medicationId),
@@ -69,6 +72,7 @@ class MedicationViewModel: ObservableObject {
         }
     }
     
+    // logs whether the user took, skipped, or missed a medication at a scheduled time
     func logMedicationAction(medicationId: Int, status: MedicationStatus, scheduledTime: String) {
         do {
             try databaseService.logMedicationStatus(
@@ -84,7 +88,7 @@ class MedicationViewModel: ObservableObject {
     
     func updateMedication(medicationId: Int, name: String, dosage: String, frequency: String, reminderTimes: [String]) {
         do {
-            notificationService.cancelMedicationNotifications(medicationId: medicationId)
+            notificationService.cancelMedicationNotifications(medicationId: medicationId) //cancels old reminders before applying changes
             
             try databaseService.updateMedication(
                 medicationId: medicationId,
@@ -94,6 +98,7 @@ class MedicationViewModel: ObservableObject {
                 reminderTimes: reminderTimes
             )
             
+            // reschedules with the updated times if any were set
             if !reminderTimes.isEmpty {
                 notificationService.scheduleMedicationReminders(
                     medicationId: medicationId,

@@ -67,19 +67,6 @@ class DashboardViewModel: ObservableObject {
             return
         }
         
-        // -avg sleep
-        let sleepValues = recentCheckIns.compactMap { checkIn -> Double? in
-            guard let hours = checkIn.sleepHours else { return nil }
-            switch hours {
-            case .eightPlus: return 8.5
-            case .sevenToEight: return 7.5
-            case .sixToSeven: return 6.5
-            case .lessThanSix: return 5.0
-            }
-        }
-        
-        averageSleepHours = sleepValues.isEmpty ? 0 : sleepValues.reduce(0, +) / Double(sleepValues.count)
-        
         // -avg water
         let waterValues = recentCheckIns.compactMap { checkIn -> Double? in
             guard let intake = checkIn.waterGlasses else { return nil }

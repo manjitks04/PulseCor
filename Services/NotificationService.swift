@@ -3,20 +3,20 @@
 //  PulseCor
 //
 //
-
 //to create and implement in order to recieve alerts within app (medication, check-ins, reflections, foreground suppression logic)
 
 import UserNotifications
 import Foundation
 
 class NotificationService: NSObject, UNUserNotificationCenterDelegate {
-    static let shared = NotificationService()
+    static let shared = NotificationService() // single instance used app-wide
     
     private override init() {
-        super.init()
-        UNUserNotificationCenter.current().delegate = self
+        super.init() //inherit from NSObject
+        UNUserNotificationCenter.current().delegate = self //register as delegate so iOS routes notification events here
     }
     
+    //called when a notification arrives while the app is open — decides whether to show it or suppress it
     func userNotificationCenter(
         _ center: UNUserNotificationCenter,
         willPresent notification: UNNotification,
@@ -41,7 +41,7 @@ class NotificationService: NSObject, UNUserNotificationCenterDelegate {
             if let error = error {
                 print("Error requesting notification auth: \(error)")
             }
-            DispatchQueue.main.async {
+            DispatchQueue.main.async { // jump to main thread before updating UI
                 completion(granted)
             }
         }
@@ -60,7 +60,7 @@ class NotificationService: NSObject, UNUserNotificationCenterDelegate {
             content.title = "💊 Medication Reminder"
             content.body = "\(medicationName), \(dosage)"
             content.sound = .default
-            content.userInfo = [
+            content.userInfo = [ // extra data passed along with the notification for handling on tap
                 "medicationId": medicationId,
                 "medicationName": medicationName,
                 "dosage": dosage,
@@ -72,7 +72,7 @@ class NotificationService: NSObject, UNUserNotificationCenterDelegate {
             dateComponents.minute = minute
             
             let trigger = UNCalendarNotificationTrigger(dateMatching: dateComponents, repeats: true)
-            let identifier = "medication-\(medicationId)-\(time)"
+            let identifier = "medication-\(medicationId)-\(time)" // unique ID per medication per time slot
             let request = UNNotificationRequest(identifier: identifier, content: content, trigger: trigger)
             
             center.add(request) { error in
@@ -93,6 +93,8 @@ class NotificationService: NSObject, UNUserNotificationCenterDelegate {
         }
     }
     
+    // schedules a daily repeating check-in reminder at the user's chosen time
+
     func scheduleDailyCheckIn(hour: Int, minute: Int, isAM: Bool) {
         let center = UNUserNotificationCenter.current()
         center.removePendingNotificationRequests(withIdentifiers: ["daily-checkin"])
@@ -120,6 +122,7 @@ class NotificationService: NSObject, UNUserNotificationCenterDelegate {
         UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: ["daily-checkin"])
     }
     
+    // schedules a weekly reflection every Sunday at the user's chosen time
     func scheduleWeeklyReflection(hour: Int, minute: Int, isAM: Bool) {
         let center = UNUserNotificationCenter.current()
         center.removePendingNotificationRequests(withIdentifiers: ["weekly-reflection"])
@@ -148,6 +151,7 @@ class NotificationService: NSObject, UNUserNotificationCenterDelegate {
         UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: ["weekly-reflection"])
     }
     
+    // called when the user taps a notification — routes them to the correct tab
     func userNotificationCenter(
         _ center: UNUserNotificationCenter,
         didReceive response: UNNotificationResponse,

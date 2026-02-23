@@ -13,14 +13,14 @@ class BrowseViewModel: ObservableObject {
     @Published var errorMessage: String?
     
     private let databaseService: DatabaseService
-    private static var hasLoadedThisSession = false
+    private static var hasLoadedThisSession = false // shared across all instances, persists until app is killed
     
     init(databaseService: DatabaseService = .shared) {
         self.databaseService = databaseService
         
         if !BrowseViewModel.hasLoadedThisSession {
                     loadRandomArticles()
-                    BrowseViewModel.hasLoadedThisSession = true
+                    BrowseViewModel.hasLoadedThisSession = true // prevent reloading until next app launch
         }
     }
     

@@ -15,9 +15,9 @@ struct ConversationFlow: Codable {
     let startedAt: Date
     var completedAt: Date?
     
-    var tempData: [String: String]
+    var tempData: [String: String] //dict mapping key to val
     
-    // Initializer
+    // Initialiser
     init(id: Int? = nil,
          sessionId: String = UUID().uuidString,
          userId: Int = 1,

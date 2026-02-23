@@ -19,6 +19,7 @@ class WeeklyCalendarHelper {
         let calendar = Calendar.current
         let today = Date()
         
+        //Only shows one week strip using .yearForWeekOfYear & .weekOfYear
         guard let weekStart = calendar.date(from: calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: today)) else {
             return []
         }

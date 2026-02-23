@@ -177,7 +177,7 @@ class DatabaseService {
     }
 
     func updateConversationFlow(sessionId idValue: String, currentStep step: ConversationStep, tempData data: [String: String]) throws {
-        let flowRecord = flows.filter(sessionId == idValue)
+        let flowRecord = flows.filter(sessionId == idValue) //matches flow record to session ID
         
         let jsonData = try JSONEncoder().encode(data)
         let jsonString = String(data: jsonData, encoding: .utf8) ?? "{}"
@@ -187,7 +187,7 @@ class DatabaseService {
             tempData <- jsonString
         )
         
-        if try db?.run(update) == 0 {
+        if try db?.run(update) == 0 { //if no record exists, inserts one
             try db?.run(flows.insert(
                 sessionId <- idValue,
                 userId <- 1,
@@ -198,6 +198,7 @@ class DatabaseService {
         }
     }
     
+    //Finds flow by session ID and sets isComplete to true
     func completeConversationFlow(sessionId idValue: String) throws {
         guard let database = db else {
             throw PulseCorError.databaseConnectionFailed
@@ -210,6 +211,7 @@ class DatabaseService {
         ))
     }
 
+    //Fetches all chat messages for a session, converts Cora string to .cora sender enum
     func getMessages(sessionId idValue: String) throws -> [ChatMessage] {
         var loadedMessages: [ChatMessage] = []
         
@@ -229,6 +231,7 @@ class DatabaseService {
         return loadedMessages
     }
     
+    //If no user exists yet, creates one
     func getUser(userId: Int = 1) throws -> User? {
         guard let database = db else {
             throw PulseCorError.databaseConnectionFailed
@@ -259,6 +262,7 @@ class DatabaseService {
         return newUser
     }
 
+    //gets last 7 check ins
     func getRecentCheckIns(userId: Int = 1, limit: Int = 7) throws -> [DailyCheckIn] {
         guard let database = db else {
                 throw PulseCorError.databaseConnectionFailed
@@ -286,6 +290,7 @@ class DatabaseService {
         return checkInsList
     }
 
+    //From current date, works out streaks by finding gaps in check ins
      func getCurrentStreak(userId: Int) throws -> Int {
         guard let database = db else {
                 throw PulseCorError.databaseConnectionFailed
@@ -312,6 +317,7 @@ class DatabaseService {
         return streak
     }
 
+    //Walks through check ins to track longest consecutive run of days
      func getLongestStreak(userId: Int) throws -> Int {
         guard let database = db else {
                 throw PulseCorError.databaseConnectionFailed
@@ -347,6 +353,7 @@ class DatabaseService {
         return max(longestStreak, currentStreak)
     }
 
+    //Fetches date of most recent completed check-in
     private func getLastCheckInDate(userId: Int) throws -> Date? {
         guard let database = db else {
                 throw PulseCorError.databaseConnectionFailed
@@ -363,6 +370,7 @@ class DatabaseService {
         return nil
     }
 
+    //Looks for unfinished conversation flow & reconstructs it as ConvFlow
     func getActiveConversation() throws -> ConversationFlow? {
         guard let database = db else {
                 throw PulseCorError.databaseConnectionFailed
@@ -370,7 +378,7 @@ class DatabaseService {
         let query = flows.filter(isComplete == false).limit(1)
         if let row = try database.pluck(query) {
             let data = row[tempData].data(using: .utf8)!
-            let decodedData = try JSONDecoder().decode([String: String].self, from: data)
+            let decodedData = try JSONDecoder().decode([String: String].self, from: data) //Decodes temp data back into a dictionary
             
             return ConversationFlow(
                 sessionId: row[sessionId],
@@ -404,6 +412,7 @@ class DatabaseService {
         return try database.scalar(query.count)
     }
     
+    //Updates user check in date and inserts a new user record if one doesn't exsist
     func updateUserStreak(userId: Int, currentStreak streak: Int, longestStreak longest: Int, lastCheckIn: Date) throws {
         guard let database = db else {
             throw PulseCorError.databaseConnectionFailed
@@ -434,8 +443,7 @@ class DatabaseService {
             throw PulseCorError.databaseConnectionFailed
         }
         
-        let reminderTimesJSON = medication.reminderTimes?.joined(separator: ",") ?? ""
-        
+        let reminderTimesJSON = medication.reminderTimes?.joined(separator: ",") ?? "" //joins reminder times into a comma seperated string
         let insert = medications.insert(
             userId <- medication.userId,
             name <- medication.name,
@@ -459,7 +467,7 @@ class DatabaseService {
         
         for row in try database.prepare(query) {
             let timesString = row[reminderTimes] ?? ""
-            let timesArray = timesString.isEmpty ? [] : timesString.components(separatedBy: ",")
+            let timesArray = timesString.isEmpty ? [] : timesString.components(separatedBy: ",") //splits comma seperated reminder times back into array
             
             medicationList.append(Medication(
                 id: Int(row[id]),
@@ -482,7 +490,7 @@ class DatabaseService {
         }
         
         let medication = medications.filter(id == Int64(medicationId))
-        try database.run(medication.update(isActive <- false))
+        try database.run(medication.update(isActive <- false)) //Soft delete as hard delete would break relationship between tables
     }
 
     func logMedicationStatus(medicationId: Int, status: MedicationStatus, scheduledTime: String) throws {
@@ -653,6 +661,7 @@ class DatabaseService {
         return articlesList
     }
     
+    //Populates articles table with default content loaded from .txt files
     func seedInitialArticles() throws {
         guard let database = db else {
             throw PulseCorError.databaseConnectionFailed

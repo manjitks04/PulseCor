@@ -30,12 +30,12 @@ class ChatViewModel: ObservableObject {
         
         do {
             if let activeFlow = try databaseService.getActiveConversation() {
-                self.currentSessionId = activeFlow.sessionId
+                self.currentSessionId = activeFlow.sessionId //restores unfinished conversation
                 self.currentFlow = activeFlow
-                self.messages = try databaseService.getMessages(sessionId: activeFlow.sessionId)
+                self.messages = try databaseService.getMessages(sessionId: activeFlow.sessionId) //reloads chat history
                 restoreQuickRepliesForCurrentStep()
             } else {
-                self.currentSessionId = UUID().uuidString
+                self.currentSessionId = UUID().uuidString //generates new session
             }
         } catch {
             print("Failed to load active conversation: \(error)")
@@ -184,7 +184,7 @@ class ChatViewModel: ObservableObject {
             try updateUserStreak()
             
             let streak = try databaseService.getUser()?.currentStreak ?? 1
-            sendCoraMessage(content: "Perfect, you're all done for the day! You're on a \(streak)-day streak! 🎉 See you tomorrow!")
+            sendCoraMessage(content: "Perfect, you're all done for the day! You're on a \(streak)-day streak! 🎉 See you tomorrow!") //STREAK NOT WORKING, FALLBACK VAL PRESENT
             
             completeConversation(flow: &flow)
         } catch {
@@ -192,7 +192,7 @@ class ChatViewModel: ObservableObject {
         }
     }
 
-    //Helpers
+    //Helpers - turn plain string back into proper enum type
     private func mapToSleepQuality(_ str: String) -> SleepQuality? { SleepQuality(rawValue: str) }
     private func mapToSleepHours(_ str: String) -> SleepHours? { SleepHours(rawValue: str) }
     private func mapToStressLevel(_ str: String) -> StressLevel? { StressLevel(rawValue: str) }
