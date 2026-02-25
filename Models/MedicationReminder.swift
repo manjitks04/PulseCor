@@ -37,6 +37,14 @@ struct MedicationLog: Codable {
     let scheduledTime: String // Which reminder time this was for
 }
 
+struct MedicationLogEntry {
+    let medicationId: Int
+    let name: String
+    let dosage: String
+    let status: MedicationStatus
+    let timestamp: Date
+}
+
 enum MedicationStatus: String, Codable, CaseIterable {
     case taken = "Taken"
     case skipped = "Skipped"
