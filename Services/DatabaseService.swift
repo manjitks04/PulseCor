@@ -9,7 +9,8 @@ class DatabaseService {
     static let shared = DatabaseService()
     private var db: Connection?
 
-    //Table & Column Definitions
+    // Table Definitions
+
     private let users = Table("users")
     private let checkIns = Table("daily_check_ins")
     private let messages = Table("messages")
@@ -18,19 +19,20 @@ class DatabaseService {
     private let medications = Table("medications")
     private let medicationLogs = Table("medication_logs")
 
-    // Common Columns
+    //Common Columns
+
     private let id = Expression<Int64>("id")
     private let userId = Expression<Int>("user_id")
     private let date = Expression<Date>("date")
     private let sessionId = Expression<String>("session_id")
-    
     private let title = Expression<String>("title")
     private let summary = Expression<String>("summary")
     private let category = Expression<String>("category")
     private let articleType = Expression<String>("article_type")
     private let imageName = Expression<String?>("image_name")
 
-    // Check-In Columns
+    //Check-In Columns
+
     private let sleepQuality = Expression<String?>("sleep_quality")
     private let sleepHours = Expression<String?>("sleep_hours")
     private let waterGlasses = Expression<String?>("water_glasses")
@@ -40,22 +42,26 @@ class DatabaseService {
     private let isComplete = Expression<Bool>("is_complete")
 
     // Message Columns
+
     private let sender = Expression<String>("sender")
     private let content = Expression<String>("content")
     private let timestamp = Expression<Date>("timestamp")
 
-    // Flow Columns
+    // Columns
+
     private let currentStep = Expression<String>("current_step")
     private let tempData = Expression<String>("temp_data")
 
-    // User Columns
+    //User Columns
+
     private let name = Expression<String>("name")
     private let createdAt = Expression<Date>("created_at")
     private let currentStreak = Expression<Int>("current_streak")
     private let longestStreak = Expression<Int>("longest_streak")
     private let lastCheckInDate = Expression<Date?>("last_check_in_date")
-    
-    //Medication Columns
+
+    // Medication Columns
+
     private let medicationId = Expression<Int>("medication_id")
     private let dosage = Expression<String>("dosage")
     private let frequency = Expression<String>("frequency")
@@ -63,7 +69,19 @@ class DatabaseService {
     private let isActive = Expression<Bool>("is_active")
     private let status = Expression<String>("status")
     private let scheduledTime = Expression<String>("scheduled_time")
-    
+
+    //App Start Date (used to scope queries)
+
+    private var appStartDate: Date = {
+        var components = DateComponents()
+        components.year = 2025
+        components.month = 11
+        components.day = 1
+        return Calendar.current.date(from: components) ?? Date()
+    }()
+
+    //Init
+
     private init() {
         setupDatabase()
     }
@@ -73,23 +91,29 @@ class DatabaseService {
             let path = NSSearchPathForDirectoriesInDomains(.documentDirectory, .userDomainMask, true).first!
             db = try Connection("\(path)/pulsecor.sqlite3")
             try createTables()
-            try seedInitialArticles()
+
+            // Only seed articles once — avoids a query on every launch
+            if !UserDefaults.standard.bool(forKey: "hasSeededArticles") {
+                try seedInitialArticles()
+                UserDefaults.standard.set(true, forKey: "hasSeededArticles")
+            }
         } catch {
             print("Database setup failed: \(error)")
         }
     }
 
-    
+    //Create Tables
+
     private func createTables() throws {
         try db?.run(users.create(ifNotExists: true) { t in
-                t.column(id, primaryKey: .autoincrement)
-                t.column(name)
-                t.column(createdAt)
-                t.column(currentStreak, defaultValue: 0)
-                t.column(longestStreak, defaultValue: 0)
-                t.column(lastCheckInDate)
+            t.column(id, primaryKey: .autoincrement)
+            t.column(name)
+            t.column(createdAt)
+            t.column(currentStreak, defaultValue: 0)
+            t.column(longestStreak, defaultValue: 0)
+            t.column(lastCheckInDate)
         })
-        
+
         try db?.run(checkIns.create(ifNotExists: true) { t in
             t.column(id, primaryKey: .autoincrement)
             t.column(userId)
@@ -118,7 +142,7 @@ class DatabaseService {
             t.column(content)
             t.column(timestamp)
         })
-        
+
         try db?.run(medications.create(ifNotExists: true) { t in
             t.column(id, primaryKey: .autoincrement)
             t.column(userId)
@@ -137,7 +161,7 @@ class DatabaseService {
             t.column(timestamp)
             t.column(scheduledTime)
         })
-        
+
         try db?.run(articles.create(ifNotExists: true) { t in
             t.column(id, primaryKey: .autoincrement)
             t.column(title)
@@ -147,7 +171,15 @@ class DatabaseService {
             t.column(articleType)
             t.column(imageName)
         })
+
+        // Indexes for commonly filtered columns
+        try db?.run(checkIns.createIndex(userId, date, ifNotExists: true))
+        try db?.run(checkIns.createIndex(isComplete, ifNotExists: true))
+        try db?.run(medicationLogs.createIndex(timestamp, ifNotExists: true))
+        try db?.run(medications.createIndex(userId, isActive, ifNotExists: true))
     }
+
+    // Check-Ins
 
     func createCheckIn(checkIn: DailyCheckIn) throws -> Bool {
         let insert = checkIns.insert(
@@ -165,116 +197,16 @@ class DatabaseService {
         return true
     }
 
-    func saveMessage(message: ChatMessage) throws -> Bool {
-        let insert = messages.insert(
-            sessionId <- message.sessionId,
-            sender <- message.sender.rawValue,
-            content <- message.content,
-            timestamp <- Date()
-        )
-        try db?.run(insert)
-        return true
-    }
-
-    func updateConversationFlow(sessionId idValue: String, currentStep step: ConversationStep, tempData data: [String: String]) throws {
-        let flowRecord = flows.filter(sessionId == idValue) //matches flow record to session ID
-        
-        let jsonData = try JSONEncoder().encode(data)
-        let jsonString = String(data: jsonData, encoding: .utf8) ?? "{}"
-
-        let update = flowRecord.update(
-            currentStep <- step.rawValue,
-            tempData <- jsonString
-        )
-        
-        if try db?.run(update) == 0 { //if no record exists, inserts one
-            try db?.run(flows.insert(
-                sessionId <- idValue,
-                userId <- 1,
-                currentStep <- step.rawValue,
-                tempData <- jsonString,
-                isComplete <- false
-            ))
-        }
-    }
-    
-    //Finds flow by session ID and sets isComplete to true
-    func completeConversationFlow(sessionId idValue: String) throws {
-        guard let database = db else {
-            throw PulseCorError.databaseConnectionFailed
-        }
-        
-        let flowRecord = flows.filter(sessionId == idValue)
-        
-        try database.run(flowRecord.update(
-            isComplete <- true
-        ))
-    }
-
-    //Fetches all chat messages for a session, converts Cora string to .cora sender enum
-    func getMessages(sessionId idValue: String) throws -> [ChatMessage] {
-        var loadedMessages: [ChatMessage] = []
-        
-        guard let database = db else {
-            throw PulseCorError.databaseConnectionFailed
-        }
-        
-        let query = messages.filter(sessionId == idValue).order(timestamp.asc)
-        
-        for msg in try database.prepare(query) {
-            loadedMessages.append(ChatMessage(
-                sessionId: msg[sessionId],
-                sender: msg[sender] == "Cora" ? .cora : .user,
-                content: msg[content]
-            ))
-        }
-        return loadedMessages
-    }
-    
-    //If no user exists yet, creates one
-    func getUser(userId: Int = 1) throws -> User? {
-        guard let database = db else {
-            throw PulseCorError.databaseConnectionFailed
-        }
-        
-        let query = users.filter(id == Int64(userId))
-        
-        if let row = try database.pluck(query) {
-            return User(
-                id: Int(row[id]),
-                name: row[name],
-                createdAt: row[createdAt],
-                lastCheckInDate: row[lastCheckInDate],
-                currentStreak: row[currentStreak],
-                longestStreak: row[longestStreak]
-            )
-        }
-        
-        let newUser = User(id: userId, name: "User")
-        try database.run(users.insert(
-            id <- Int64(userId),
-            name <- "User",
-            createdAt <- Date(),
-            currentStreak <- 0,
-            longestStreak <- 0,
-            lastCheckInDate <- nil
-        ))
-        return newUser
-    }
-
-    //gets last 7 check ins
     func getRecentCheckIns(userId: Int = 1, limit: Int = 7) throws -> [DailyCheckIn] {
-        guard let database = db else {
-                throw PulseCorError.databaseConnectionFailed
-            }
-        var checkInsList: [DailyCheckIn] = []
+        guard let database = db else { throw PulseCorError.databaseConnectionFailed }
+
         let query = checkIns
             .filter(self.userId == userId)
             .order(date.desc)
             .limit(limit)
-        
-        for row in try database.prepare(query) {
-            checkInsList.append(DailyCheckIn(
+
+        return try database.prepare(query).map { row in
+            DailyCheckIn(
                 id: Int(row[id]),
                 userId: row[self.userId],
                 date: row[date],
@@ -285,28 +217,99 @@ class DatabaseService {
                 energyLevel: row[energyLevel].flatMap { EnergyLevel(rawValue: $0) },
                 activityLevel: row[activityLevel].flatMap { ActivityLevel(rawValue: $0) },
                 isComplete: row[isComplete]
-            ))
+            )
         }
-        return checkInsList
     }
 
-    //From current date, works out streaks by finding gaps in check ins
-     func getCurrentStreak(userId: Int) throws -> Int {
-        guard let database = db else {
-                throw PulseCorError.databaseConnectionFailed
-            }
-            
+    func getLast30DaysCheckIns(userId: Int = 1) throws -> [DailyCheckIn] {
+        guard let database = db else { throw PulseCorError.databaseConnectionFailed }
+
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        let thirtyDaysAgo = calendar.date(byAdding: .day, value: -30, to: today)!
+
+        let query = checkIns
+            .filter(self.userId == userId)
+            .filter(date >= thirtyDaysAgo && date <= today)
+            .order(date.asc)
+
+        return try database.prepare(query).map { row in
+            DailyCheckIn(
+                id: Int(row[id]),
+                userId: row[self.userId],
+                date: row[date],
+                sleepQuality: row[sleepQuality].flatMap { SleepQuality(rawValue: $0) },
+                sleepHours: row[sleepHours].flatMap { SleepHours(rawValue: $0) },
+                waterGlasses: row[waterGlasses].flatMap { WaterIntake(rawValue: $0) },
+                stressLevel: row[stressLevel].flatMap { StressLevel(rawValue: $0) },
+                energyLevel: row[energyLevel].flatMap { EnergyLevel(rawValue: $0) },
+                activityLevel: row[activityLevel].flatMap { ActivityLevel(rawValue: $0) },
+                isComplete: row[isComplete]
+            )
+        }
+    }
+
+    func hasCheckedInToday(userId: Int = 1) throws -> Bool {
+        guard let database = db else { throw PulseCorError.databaseConnectionFailed }
+
+        let calendar = Calendar.current
+        let startOfToday = calendar.startOfDay(for: Date())
+        let endOfToday = calendar.date(byAdding: .day, value: 1, to: startOfToday)!
+
+        let query = checkIns
+            .filter(self.userId == userId)
+            .filter(isComplete == true)
+            .filter(date >= startOfToday && date < endOfToday)
+
+        return try database.scalar(query.count) > 0
+    }
+
+    func getWeeklyCount(userId: Int = 1) throws -> Int {
+        guard let database = db else { throw PulseCorError.databaseConnectionFailed }
+
+        let calendar = Calendar.current
+        let now = Date()
+
+        guard let weekStart = calendar.dateInterval(of: .weekOfYear, for: now)?.start else { return 0 }
+
+        let query = checkIns
+            .filter(self.userId == userId)
+            .filter(isComplete == true)
+            .filter(date >= weekStart && date <= now)
+
+        return try database.scalar(query.count)
+    }
+
+    // Batch query — returns all check-in dates as start-of-day values for calendar use
+    func getAllCheckInDates(userId: Int = 1) throws -> [Date] {
+        guard let database = db else { throw PulseCorError.databaseConnectionFailed }
+
+        let query = checkIns
+            .filter(self.userId == userId)
+            .filter(isComplete == true)
+            .filter(date >= appStartDate)
+            .select(date)
+
+        return try database.prepare(query).map {
+            Calendar.current.startOfDay(for: $0[date])
+        }
+    }
+
+    // Streaks
+
+    func getCurrentStreak(userId: Int) throws -> Int {
+        guard let database = db else { throw PulseCorError.databaseConnectionFailed }
+
         var streak = 0
         let query = checkIns
             .filter(self.userId == userId)
             .filter(isComplete == true)
             .order(date.desc)
-        
+
         var expectedDate = Calendar.current.startOfDay(for: Date())
-        
+
         for row in try database.prepare(query) {
             let checkInDate = Calendar.current.startOfDay(for: row[date])
-            
             if checkInDate == expectedDate {
                 streak += 1
                 expectedDate = Calendar.current.date(byAdding: .day, value: -1, to: expectedDate)!
@@ -317,26 +320,22 @@ class DatabaseService {
         return streak
     }
 
-    //Walks through check ins to track longest consecutive run of days
-     func getLongestStreak(userId: Int) throws -> Int {
-        guard let database = db else {
-                throw PulseCorError.databaseConnectionFailed
-            }
+    func getLongestStreak(userId: Int) throws -> Int {
+        guard let database = db else { throw PulseCorError.databaseConnectionFailed }
+
         var longestStreak = 0
         var currentStreak = 0
         var lastDate: Date?
-        
+
         let query = checkIns
             .filter(self.userId == userId)
             .filter(isComplete == true)
             .order(date.asc)
-        
+
         for row in try database.prepare(query) {
             let checkInDate = Calendar.current.startOfDay(for: row[date])
-            
             if let last = lastDate {
                 let daysBetween = Calendar.current.dateComponents([.day], from: last, to: checkInDate).day ?? 0
-                
                 if daysBetween == 1 {
                     currentStreak += 1
                 } else {
@@ -346,86 +345,51 @@ class DatabaseService {
             } else {
                 currentStreak = 1
             }
-            
             lastDate = checkInDate
         }
-        
+
         return max(longestStreak, currentStreak)
     }
 
-    //Fetches date of most recent completed check-in
-    private func getLastCheckInDate(userId: Int) throws -> Date? {
-        guard let database = db else {
-                throw PulseCorError.databaseConnectionFailed
-            }
-        let query = checkIns
-            .filter(self.userId == userId)
-            .filter(isComplete == true)
-            .order(date.desc)
-            .limit(1)
-        
-        if let row = try database.pluck(query) {
-            return row[date]
-        }
-        return nil
-    }
+    // Users
 
-    //Looks for unfinished conversation flow & reconstructs it as ConvFlow
-    func getActiveConversation() throws -> ConversationFlow? {
-        guard let database = db else {
-                throw PulseCorError.databaseConnectionFailed
-            }
-        let query = flows.filter(isComplete == false).limit(1)
+    func getUser(userId: Int = 1) throws -> User? {
+        guard let database = db else { throw PulseCorError.databaseConnectionFailed }
+
+        let query = users.filter(id == Int64(userId))
+
         if let row = try database.pluck(query) {
-            let data = row[tempData].data(using: .utf8)!
-            let decodedData = try JSONDecoder().decode([String: String].self, from: data) //Decodes temp data back into a dictionary
-            
-            return ConversationFlow(
-                sessionId: row[sessionId],
-                userId: row[userId],
-                flowType: .dailyCheckIn,
-                currentStep: ConversationStep(rawValue: row[currentStep]) ?? .greeting,
-                isComplete: row[isComplete],
-                tempData: decodedData
+            return User(
+                id: Int(row[id]),
+                name: row[name],
+                createdAt: row[createdAt],
+                lastCheckInDate: row[lastCheckInDate],
+                currentStreak: row[currentStreak],
+                longestStreak: row[longestStreak]
             )
         }
-        return nil
+
+        try database.run(users.insert(
+            id <- Int64(userId),
+            name <- "User",
+            createdAt <- Date(),
+            currentStreak <- 0,
+            longestStreak <- 0,
+            lastCheckInDate <- nil
+        ))
+        return User(id: userId, name: "User")
     }
-    
-    func getWeeklyCount(userId: Int = 1) throws -> Int{
-        guard let database = db else{
-            throw PulseCorError.databaseConnectionFailed
-        }
-        
-        let calendar = Calendar.current
-        let now = Date()
-        
-        guard let weekStart = calendar.dateInterval(of: .weekOfYear, for: now)?.start else{
-            return 0
-        }
-        
-        let query = checkIns
-            .filter(self.userId == userId)
-            .filter(isComplete == true)
-            .filter(date >= weekStart && date <= now)
-        
-        return try database.scalar(query.count)
-    }
-    
-    //Updates user check in date and inserts a new user record if one doesn't exsist
+
     func updateUserStreak(userId: Int, currentStreak streak: Int, longestStreak longest: Int, lastCheckIn: Date) throws {
-        guard let database = db else {
-            throw PulseCorError.databaseConnectionFailed
-        }
-        
+        guard let database = db else { throw PulseCorError.databaseConnectionFailed }
+
         let user = users.filter(id == Int64(userId))
-        
         let rowsUpdated = try database.run(user.update(
             currentStreak <- streak,
             longestStreak <- longest,
             lastCheckInDate <- lastCheckIn
         ))
-        
+
         if rowsUpdated == 0 {
             try database.run(users.insert(
                 id <- Int64(userId),
@@ -437,39 +401,34 @@ class DatabaseService {
             ))
         }
     }
-    
+
+    // Medications
+
     func createMedication(medication: Medication) throws -> Int64 {
-        guard let database = db else {
-            throw PulseCorError.databaseConnectionFailed
-        }
-        
-        let reminderTimesJSON = medication.reminderTimes?.joined(separator: ",") ?? "" //joins reminder times into a comma seperated string
+        guard let database = db else { throw PulseCorError.databaseConnectionFailed }
+
+        let reminderTimesString = medication.reminderTimes?.joined(separator: ",") ?? ""
         let insert = medications.insert(
             userId <- medication.userId,
             name <- medication.name,
             dosage <- medication.dosage,
             frequency <- medication.frequency,
-            reminderTimes <- reminderTimesJSON,
+            reminderTimes <- reminderTimesString,
             isActive <- medication.isActive,
             createdAt <- medication.createdAt
         )
-        
         return try database.run(insert)
     }
 
     func getMedications(userId: Int = 1) throws -> [Medication] {
-        guard let database = db else {
-            throw PulseCorError.databaseConnectionFailed
-        }
-        
-        var medicationList: [Medication] = []
+        guard let database = db else { throw PulseCorError.databaseConnectionFailed }
+
         let query = medications.filter(self.userId == userId && isActive == true)
-        
-        for row in try database.prepare(query) {
+
+        return try database.prepare(query).map { row in
             let timesString = row[reminderTimes] ?? ""
-            let timesArray = timesString.isEmpty ? [] : timesString.components(separatedBy: ",") //splits comma seperated reminder times back into array
-            
-            medicationList.append(Medication(
+            let timesArray = timesString.isEmpty ? [] : timesString.components(separatedBy: ",")
+            return Medication(
                 id: Int(row[id]),
                 userId: row[self.userId],
                 name: row[name],
@@ -478,118 +437,159 @@ class DatabaseService {
                 reminderTimes: timesArray,
                 isActive: row[isActive],
                 createdAt: row[createdAt]
-            ))
+            )
         }
-        
-        return medicationList
-    }
-    
-    func deleteMedication(medicationId: Int) throws {
-        guard let database = db else {
-            throw PulseCorError.databaseConnectionFailed
-        }
-        
-        let medication = medications.filter(id == Int64(medicationId))
-        try database.run(medication.update(isActive <- false)) //Soft delete as hard delete would break relationship between tables
     }
 
-    func logMedicationStatus(medicationId: Int, status: MedicationStatus, scheduledTime: String) throws {
-        guard let database = db else {
-            throw PulseCorError.databaseConnectionFailed
-        }
-        
-        let insert = medicationLogs.insert(
-            self.medicationId <- medicationId,
-            self.status <- status.rawValue,
-            timestamp <- Date(),
-            self.scheduledTime <- scheduledTime
-        )
-        
-        try database.run(insert)
-    }
-    
     func updateMedication(medicationId: Int, name: String, dosage: String, frequency: String, reminderTimes: [String]) throws {
-        guard let database = db else {
-            throw PulseCorError.databaseConnectionFailed
-        }
-        
+        guard let database = db else { throw PulseCorError.databaseConnectionFailed }
+
         let medication = medications.filter(id == Int64(medicationId))
-        let reminderTimesJSON = reminderTimes.joined(separator: ",")
-        
         try database.run(medication.update(
             self.name <- name,
             self.dosage <- dosage,
             self.frequency <- frequency,
-            self.reminderTimes <- reminderTimesJSON
+            self.reminderTimes <- reminderTimes.joined(separator: ",")
         ))
     }
-    
-    func getLast30DaysCheckIns(userId: Int = 1) throws -> [DailyCheckIn] {
-        guard let database = db else {
-            throw PulseCorError.databaseConnectionFailed
+
+    func deleteMedication(medicationId: Int) throws {
+        guard let database = db else { throw PulseCorError.databaseConnectionFailed }
+
+        // Soft delete — preserves log history
+        let medication = medications.filter(id == Int64(medicationId))
+        try database.run(medication.update(isActive <- false))
+    }
+
+    // Medication Logs
+
+    func logMedicationStatus(medicationId: Int, status: MedicationStatus, scheduledTime: String) throws {
+        guard let database = db else { throw PulseCorError.databaseConnectionFailed }
+
+        try database.run(medicationLogs.insert(
+            self.medicationId <- medicationId,
+            self.status <- status.rawValue,
+            timestamp <- Date(),
+            self.scheduledTime <- scheduledTime
+        ))
+    }
+
+    // Batch query — returns all logs from app start date for calendar use
+    func getAllMedicationLogs(userId: Int = 1) throws -> [MedicationLogEntry] {
+        guard let database = db else { throw PulseCorError.databaseConnectionFailed }
+
+        // Build id → (name, dosage) lookup once
+        let userMeds = try getMedications(userId: userId)
+        let medInfo: [Int: (String, String)] = Dictionary(
+            uniqueKeysWithValues: userMeds.compactMap { med -> (Int, (String, String))? in
+                guard let medId = med.id else { return nil }
+                return (medId, (med.name, med.dosage))
+            }
+        )
+
+        let query = medicationLogs.filter(timestamp >= appStartDate)
+
+        return try database.prepare(query).compactMap { row in
+            let rowMedId = row[medicationId]
+            guard let info = medInfo[rowMedId],
+                  let medStatus = MedicationStatus(rawValue: row[self.status])
+            else { return nil }
+
+            return MedicationLogEntry(
+                medicationId: rowMedId,
+                name: info.0,
+                dosage: info.1,
+                status: medStatus,
+                timestamp: row[timestamp]
+            )
         }
-        
-        let calendar = Calendar.current
-        let today = calendar.startOfDay(for: Date())
-        let thirtyDaysAgo = calendar.date(byAdding: .day, value: -30, to: today)!
-        
-        let query = checkIns
-            .filter(self.userId == userId)
-            .filter(date >= thirtyDaysAgo && date <= today)
-            .order(date.asc)
-        
-        var checkInsList: [DailyCheckIn] = []
-        
-        for row in try database.prepare(query) {
-            checkInsList.append(DailyCheckIn(
-                id: Int(row[id]),
-                userId: row[self.userId],
-                date: row[date],
-                sleepQuality: row[sleepQuality].flatMap { SleepQuality(rawValue: $0) },
-                sleepHours: row[sleepHours].flatMap { SleepHours(rawValue: $0) },
-                waterGlasses: row[waterGlasses].flatMap { WaterIntake(rawValue: $0) },
-                stressLevel: row[stressLevel].flatMap { StressLevel(rawValue: $0) },
-                energyLevel: row[energyLevel].flatMap { EnergyLevel(rawValue: $0) },
-                activityLevel: row[activityLevel].flatMap { ActivityLevel(rawValue: $0) },
-                isComplete: row[isComplete]
+    }
+
+    // Messages
+
+    func saveMessage(message: ChatMessage) throws -> Bool {
+        let insert = messages.insert(
+            sessionId <- message.sessionId,
+            sender <- message.sender.rawValue,
+            content <- message.content,
+            timestamp <- Date()
+        )
+        try db?.run(insert)
+        return true
+    }
+
+    func getMessages(sessionId idValue: String) throws -> [ChatMessage] {
+        guard let database = db else { throw PulseCorError.databaseConnectionFailed }
+
+        let query = messages.filter(sessionId == idValue).order(timestamp.asc)
+
+        return try database.prepare(query).map { msg in
+            ChatMessage(
+                sessionId: msg[sessionId],
+                sender: msg[sender] == "Cora" ? .cora : .user,
+                content: msg[content]
+            )
+        }
+    }
+
+    // Conversation Flows
+
+    func updateConversationFlow(sessionId idValue: String, currentStep step: ConversationStep, tempData data: [String: String]) throws {
+        let flowRecord = flows.filter(sessionId == idValue)
+
+        let jsonData = try JSONEncoder().encode(data)
+        let jsonString = String(data: jsonData, encoding: .utf8) ?? "{}"
+
+        if try db?.run(flowRecord.update(
+            currentStep <- step.rawValue,
+            tempData <- jsonString
+        )) == 0 {
+            try db?.run(flows.insert(
+                sessionId <- idValue,
+                userId <- 1,
+                currentStep <- step.rawValue,
+                tempData <- jsonString,
+                isComplete <- false
             ))
         }
-        
-        return checkInsList
     }
-    
-    func hasCheckedInToday(userId: Int = 1) throws -> Bool {
-        guard let database = db else {
-            throw PulseCorError.databaseConnectionFailed
+
+    func completeConversationFlow(sessionId idValue: String) throws {
+        guard let database = db else { throw PulseCorError.databaseConnectionFailed }
+        let flowRecord = flows.filter(sessionId == idValue)
+        try database.run(flowRecord.update(isComplete <- true))
+    }
+
+    func getActiveConversation() throws -> ConversationFlow? {
+        guard let database = db else { throw PulseCorError.databaseConnectionFailed }
+
+        let query = flows.filter(isComplete == false).limit(1)
+        if let row = try database.pluck(query) {
+            let data = row[tempData].data(using: .utf8)!
+            let decodedData = try JSONDecoder().decode([String: String].self, from: data)
+
+            return ConversationFlow(
+                sessionId: row[sessionId],
+                userId: row[userId],
+                flowType: .dailyCheckIn,
+                currentStep: ConversationStep(rawValue: row[currentStep]) ?? .greeting,
+                isComplete: row[isComplete],
+                tempData: decodedData
+            )
         }
-        
-        let calendar = Calendar.current
-        let startOfToday = calendar.startOfDay(for: Date())
-        let endOfToday = calendar.date(byAdding: .day, value: 1, to: startOfToday)!
-        
-        let query = checkIns
-            .filter(self.userId == userId)
-            .filter(isComplete == true)
-            .filter(date >= startOfToday && date < endOfToday)
-        
-        return try database.scalar(query.count) > 0
+        return nil
     }
-    
+
+    // Articles
+
     func getArticlesByCategory(category: ArticleCategory, type: ArticleType? = nil) throws -> [Article] {
-        guard let database = db else {
-            throw PulseCorError.databaseConnectionFailed
-        }
-        
+        guard let database = db else { throw PulseCorError.databaseConnectionFailed }
+
         var query = articles.filter(self.category == category.rawValue)
-        
-        if let type = type {
-            query = query.filter(articleType == type.rawValue)
-        }
-        
-        var articlesList: [Article] = []
-        
-        for row in try database.prepare(query) {
-            articlesList.append(Article(
+        if let type = type { query = query.filter(articleType == type.rawValue) }
+
+        return try database.prepare(query).map { row in
+            Article(
                 id: Int(row[id]),
                 title: row[title],
                 summary: row[summary],
@@ -597,33 +597,20 @@ class DatabaseService {
                 category: ArticleCategory(rawValue: row[self.category]) ?? .generalWellness,
                 articleType: ArticleType(rawValue: row[articleType]) ?? .helpfulArticle,
                 imageName: row[imageName]
-            ))
+            )
         }
-        
-        return articlesList
     }
 
     func getRandomArticles(category: ArticleCategory? = nil, type: ArticleType? = nil, limit: Int = 3) throws -> [Article] {
-        guard let database = db else {
-            throw PulseCorError.databaseConnectionFailed
-        }
-        
+        guard let database = db else { throw PulseCorError.databaseConnectionFailed }
+
         var query = articles.select(articles[*])
-        
-        if let category = category {
-            query = query.filter(self.category == category.rawValue)
-        }
-        
-        if let type = type {
-            query = query.filter(articleType == type.rawValue)
-        }
-        
+        if let category = category { query = query.filter(self.category == category.rawValue) }
+        if let type = type { query = query.filter(articleType == type.rawValue) }
         query = query.order(Expression<Int>.random()).limit(limit)
-        
-        var articlesList: [Article] = []
-        
-        for row in try database.prepare(query) {
-            articlesList.append(Article(
+
+        return try database.prepare(query).map { row in
+            Article(
                 id: Int(row[id]),
                 title: row[title],
                 summary: row[summary],
@@ -631,23 +618,17 @@ class DatabaseService {
                 category: ArticleCategory(rawValue: row[self.category]) ?? .generalWellness,
                 articleType: ArticleType(rawValue: row[articleType]) ?? .helpfulArticle,
                 imageName: row[imageName]
-            ))
+            )
         }
-        
-        return articlesList
     }
 
     func getAllGeneralArticles() throws -> [Article] {
-        guard let database = db else {
-            throw PulseCorError.databaseConnectionFailed
-        }
-        
+        guard let database = db else { throw PulseCorError.databaseConnectionFailed }
+
         let query = articles.filter(category == ArticleCategory.generalWellness.rawValue)
-        
-        var articlesList: [Article] = []
-        
-        for row in try database.prepare(query) {
-            articlesList.append(Article(
+
+        return try database.prepare(query).map { row in
+            Article(
                 id: Int(row[id]),
                 title: row[title],
                 summary: row[summary],
@@ -655,104 +636,32 @@ class DatabaseService {
                 category: ArticleCategory(rawValue: row[self.category]) ?? .generalWellness,
                 articleType: ArticleType(rawValue: row[articleType]) ?? .helpfulArticle,
                 imageName: row[imageName]
-            ))
-        }
-        
-        return articlesList
-    }
-    
-    //Populates articles table with default content loaded from .txt files
-    func seedInitialArticles() throws {
-        guard let database = db else {
-            throw PulseCorError.databaseConnectionFailed
-        }
-        
-        let existingCount = try database.scalar(articles.count)
-        if existingCount > 0 { return }
-        
-        func loadArticleContent(filename: String) -> String {
-            if let filepath = Bundle.main.path(forResource: filename, ofType: "txt"),
-               let content = try? String(contentsOfFile: filepath, encoding: .utf8) {
-                return content
-            }
-            return "Content not available."
-        }
-        
-        let sampleArticles: [(title: String, summary: String, content: String, category: String, type: String, image: String?)] = [
-            (
-                title: "Improve your sleep",
-                summary: "Better sleep changes everything",
-                content: loadArticleContent(filename: "improve_sleep"),
-                category: ArticleCategory.sleep.rawValue,
-                type: ArticleType.helpfulArticle.rawValue,
-                image: "improve_sleep"
-            ),
-            (
-                title: "Move more, sit less",
-                summary: "Simple ways to stay active",
-                content: loadArticleContent(filename: "move_more"),
-                category: ArticleCategory.generalWellness.rawValue,
-                type: ArticleType.helpfulArticle.rawValue,
-                image: "move_more"
-            ),
-            (
-                title: "Practice mindfulness",
-                summary: "Find calm in your day",
-                content: loadArticleContent(filename: "mindfulness"),
-                category: ArticleCategory.generalWellness.rawValue,
-                type: ArticleType.helpfulArticle.rawValue,
-                image: "mindfulness"
-            ),
-            (
-                title: "Holistic heart care",
-                summary: "Taking care of your heart naturally",
-                content: loadArticleContent(filename: "heart_care"),
-                category: ArticleCategory.cardiovascular.rawValue,
-                type: ArticleType.helpfulArticle.rawValue,
-                image: "heart_care"
-            ),
-            (
-                title: "Prioritise your health",
-                summary: "Make yourself a priority",
-                content: loadArticleContent(filename: "prioritise_health"),
-                category: ArticleCategory.generalWellness.rawValue,
-                type: ArticleType.helpfulArticle.rawValue,
-                image: "prioritise_health"
-            ),
-            (
-                title: "Fuel your body",
-                summary: "Nutrition for better energy",
-                content: loadArticleContent(filename: "fuel_body"),
-                category: ArticleCategory.generalWellness.rawValue,
-                type: ArticleType.helpfulArticle.rawValue,
-                image: "fuel_body"
-            ),
-            (
-                title: "What are heart disease risk factors?",
-                summary: "Understanding and reducing your risk",
-                content: loadArticleContent(filename: "heart_disease_risk"),
-                category: ArticleCategory.cardiovascular.rawValue,
-                type: ArticleType.helpfulArticle.rawValue,
-                image: "heart_disease_risk"
-            ),
-            (
-                title: "Can stress affect my body?",
-                summary: "Understanding the stress-body connection",
-                content: loadArticleContent(filename: "stress_body"),
-                category: ArticleCategory.generalWellness.rawValue,
-                type: ArticleType.helpfulArticle.rawValue,
-                image: "stress_body"
-            ),
-            (
-                title: "How much water should I have?",
-                summary: "Staying properly hydrated",
-                content: loadArticleContent(filename: "water_should"),
-                category: ArticleCategory.generalWellness.rawValue,
-                type: ArticleType.helpfulArticle.rawValue,
-                image: "water_should"
             )
+        }
+    }
+
+    private func seedInitialArticles() throws {
+        guard let database = db else { throw PulseCorError.databaseConnectionFailed }
+
+        func loadArticleContent(filename: String) -> String {
+            guard let filepath = Bundle.main.path(forResource: filename, ofType: "txt"),
+                  let content = try? String(contentsOfFile: filepath, encoding: .utf8)
+            else { return "Content not available." }
+            return content
+        }
+
+        let sampleArticles: [(title: String, summary: String, content: String, category: String, type: String, image: String?)] = [
+            ("Improve your sleep", "Better sleep changes everything", loadArticleContent(filename: "improve_sleep"), ArticleCategory.sleep.rawValue, ArticleType.helpfulArticle.rawValue, "improve_sleep"),
+            ("Move more, sit less", "Simple ways to stay active", loadArticleContent(filename: "move_more"), ArticleCategory.generalWellness.rawValue, ArticleType.helpfulArticle.rawValue, "move_more"),
+            ("Practice mindfulness", "Find calm in your day", loadArticleContent(filename: "mindfulness"), ArticleCategory.generalWellness.rawValue, ArticleType.helpfulArticle.rawValue, "mindfulness"),
+            ("Holistic heart care", "Taking care of your heart naturally", loadArticleContent(filename: "heart_care"), ArticleCategory.cardiovascular.rawValue, ArticleType.helpfulArticle.rawValue, "heart_care"),
+            ("Prioritise your health", "Make yourself a priority", loadArticleContent(filename: "prioritise_health"), ArticleCategory.generalWellness.rawValue, ArticleType.helpfulArticle.rawValue, "prioritise_health"),
+            ("Fuel your body", "Nutrition for better energy", loadArticleContent(filename: "fuel_body"), ArticleCategory.generalWellness.rawValue, ArticleType.helpfulArticle.rawValue, "fuel_body"),
+            ("What are heart disease risk factors?", "Understanding and reducing your risk", loadArticleContent(filename: "heart_disease_risk"), ArticleCategory.cardiovascular.rawValue, ArticleType.helpfulArticle.rawValue, "heart_disease_risk"),
+            ("Can stress affect my body?", "Understanding the stress-body connection", loadArticleContent(filename: "stress_body"), ArticleCategory.generalWellness.rawValue, ArticleType.helpfulArticle.rawValue, "stress_body"),
+            ("How much water should I have?", "Staying properly hydrated", loadArticleContent(filename: "water_should"), ArticleCategory.generalWellness.rawValue, ArticleType.helpfulArticle.rawValue, "water_should")
         ]
-        
+
         for article in sampleArticles {
             try database.run(articles.insert(
                 title <- article.title,
@@ -764,5 +673,4 @@ class DatabaseService {
             ))
         }
     }
-
 }
