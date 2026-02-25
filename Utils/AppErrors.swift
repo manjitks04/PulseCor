@@ -45,3 +45,7 @@ enum PulseCorError: Error, LocalizedError {
             }
         }
     }
+
+extension Notification.Name {
+    static let dismissAllSheets = Notification.Name("dismissAllSheets")
+}

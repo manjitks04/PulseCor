@@ -17,6 +17,7 @@ struct PulseCorApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .environmentObject(NavigationManager.shared)
         }
         .modelContainer(for: [User.self, StepEntry.self, HeartRateEntry.self, RestingHeartRateEntry.self, HRVEntry.self])
     }

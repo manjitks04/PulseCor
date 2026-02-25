@@ -181,9 +181,9 @@ class ChatViewModel: ObservableObject {
         
         do {
             _ = try databaseService.createCheckIn(checkIn: checkIn)
-            try updateUserStreak()
+            let streak = try updateUserStreak()
             
-            let streak = try databaseService.getUser()?.currentStreak ?? 1
+//            let streak = try databaseService.getUser()?.currentStreak ?? 1
             sendCoraMessage(content: "Perfect, you're all done for the day! You're on a \(streak)-day streak! 🎉 See you tomorrow!") //STREAK NOT WORKING, FALLBACK VAL PRESENT
             
             completeConversation(flow: &flow)
@@ -350,8 +350,8 @@ class ChatViewModel: ObservableObject {
         }
     }
 
-    private func updateUserStreak() throws {
-        guard let user = try databaseService.getUser() else { return }
+    private func updateUserStreak() throws -> Int {
+        guard let user = try databaseService.getUser() else { return 1 }
         let calendar = Calendar.current
         var newStreak = 1
         if let lastCheckIn = user.lastCheckInDate {
@@ -361,6 +361,7 @@ class ChatViewModel: ObservableObject {
             else { newStreak = user.currentStreak }
         }
         try databaseService.updateUserStreak(userId: user.id, currentStreak: newStreak, longestStreak: max(user.longestStreak, newStreak), lastCheckIn: Date())
+        return newStreak
     }
     //        let actualStreak = try databaseService.getCurrentStreak(userId: user.id)
     //          let longestStreak = try databaseService.getLongestStreak(userId: user.id)

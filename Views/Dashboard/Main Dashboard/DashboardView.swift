@@ -10,6 +10,8 @@ import SwiftData
 struct DashboardView: View {
     @StateObject private var viewModel = DashboardViewModel()
     @Environment(\.modelContext) private var modelContext
+    @EnvironmentObject var navManager: NavigationManager
+    @State private var showMedicationAlert = false
     @Query private var users: [User]
     @State private var hasCheckedInToday = false
     @State private var isCheckingStatus = true
@@ -140,8 +142,47 @@ struct DashboardView: View {
                 
                 viewModel.loadDashboardData()
             }
-            .onAppear(){
-                viewModel.loadDashboardData()
+            .onChange(of: navManager.pendingMedication) { _, newValue in
+                   if newValue != nil {
+                       DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                           showMedicationAlert = true
+                       }
+                   }
+            }
+            .sheet(isPresented: $showMedicationAlert) {
+                MedicationAlertSheet(
+                    medicationName: navManager.pendingMedication?.name ?? "",
+                    dosage: navManager.pendingMedication?.dosage ?? "",
+                    scheduledTime: navManager.pendingMedication?.time ?? "",
+                    onTaken: {
+                        if let med = navManager.pendingMedication {
+                            MedicationViewModel().logMedicationAction(medicationId: med.id, status: .taken, scheduledTime: med.time)
+                        }
+                        navManager.pendingMedication = nil
+                        showMedicationAlert = false
+                    },
+                    onSkip: {
+                        if let med = navManager.pendingMedication {
+                            MedicationViewModel().logMedicationAction(medicationId: med.id, status: .skipped, scheduledTime: med.time)
+                        }
+                        navManager.pendingMedication = nil
+                        showMedicationAlert = false
+                    },
+                    onSnooze: {
+                        if let med = navManager.pendingMedication {
+                            NotificationService.shared.snoozeMedicationReminder(medicationId: med.id, medicationName: med.name, dosage: med.dosage)
+                            MedicationViewModel().logMedicationAction(medicationId: med.id, status: .snoozed, scheduledTime: med.time)
+                        }
+                        navManager.pendingMedication = nil
+                        showMedicationAlert = false
+                    },
+                    onDismiss: {
+                        navManager.pendingMedication = nil
+                        showMedicationAlert = false
+                    }
+                )
+                .presentationDetents([.height(500)])
+                .presentationDragIndicator(.hidden)
             }
         }
     }
@@ -205,124 +246,124 @@ struct DashboardArticleCard: View {
 
 
 
-
-
-#Preview("Full Dashboard") {
-    let config = ModelConfiguration(isStoredInMemoryOnly: true)
-    let container = try! ModelContainer(for: User.self, configurations: config)
-    
-    let sampleUser = User(
-        id: 1,
-        name: "Manjit",
-        createdAt: Date(),
-        lastCheckInDate: Date(),
-        currentStreak: 5,
-        longestStreak: 12
-    )
-    container.mainContext.insert(sampleUser)
-    
-    return DashboardViewPreviewWrapper()
-        .modelContainer(container)
-}
-
-struct DashboardViewPreviewWrapper: View {
-    @Query private var users: [User]
-    
-    var weekDays: [CalendarDay] {
-        WeeklyCalendarHelper.getCurrentWeek()
-    }
-    
-    var monthYear: String {
-        WeeklyCalendarHelper.getMonthYear()
-    }
-    
-    var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(spacing: 20) {
-                    HStack {
-                        Text("Hi there, \(users.first?.name ?? "Partner")👋")
-                            .font(.largeTitle)
-                            .fontWeight(.bold)
-                            .foregroundColor(Color("MainText"))
-                        Spacer()
-                    }
-                    .padding(.horizontal)
-                    .padding(.top, 55)
-                    
-                    VStack(spacing: 16) {
-                        Text(monthYear)
-                            .font(.title3)
-                            .fontWeight(.semibold)
-                            .foregroundColor(.white)
-                        
-                        HStack(spacing: 0) {
-                            ForEach(weekDays) { day in
-                                VStack(spacing: 3) {
-                                    Text(day.dayLetter)
-                                        .font(.caption)
-                                        .fontWeight(.bold)
-                                        .foregroundColor(.white.opacity(1))
-                                    
-                                    Text("\(day.dayNum)")
-                                        .font(.system(size: 15, weight: day.isCurrentDay ? .bold : .regular))
-                                        .foregroundColor(.white)
-                                        .frame(width: 32, height: 28)
-                                        .background(
-                                            Circle()
-                                                .fill(day.isCurrentDay ? Color("FillBlue") : Color.clear)
-                                        )
-                                }
-                                .frame(maxWidth: .infinity)
-                            }
-                        }
-                        
-                        VStack(spacing: 8) {
-                            Text("Ready to check in...?")
-                                .font(.title2)
-                                .fontWeight(.semibold)
-                                .foregroundColor(.white)
-                            
-                            NavigationLink(destination: Text("Conversation")) {
-                                Text("Let's go!")
-                                    .font(.subheadline)
-                                    .fontWeight(.medium)
-                                    .foregroundColor(.pink)
-                                    .padding(.horizontal, 24)
-                                    .padding(.vertical, 8)
-                                    .background(Color.white)
-                                    .cornerRadius(20)
-                            }
-                        }
-                        .padding(.top, 8)
-                    }
-                    .padding()
-                    .background(
-                        LinearGradient(
-                            colors: [Color("AccentCoral"), Color("AccentPink").opacity(0.65)],
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        )
-                    )
-                    .cornerRadius(16)
-                    .padding(.horizontal)
-                    
-                    HStack(spacing: 16){
-                        WeeklyCheckIn(completedDays: 3)
-                        StreakCard(currentStreak: users.first?.currentStreak ?? 0)
-                    }
-                    .padding(.horizontal)
-                }
-            }
-            .background(Color("MainBG"))
-            .navigationBarHidden(true)
-        }
-        .overlay(alignment: .topTrailing) {
-            if let currentUser = users.first {
-                ProfileButton(user: currentUser)
-                    .padding(.trailing, 16)
-                    .padding(.top, 20)
-            }
-        }
-    }
-}
+//
+//
+//#Preview("Full Dashboard") {
+//    let config = ModelConfiguration(isStoredInMemoryOnly: true)
+//    let container = try! ModelContainer(for: User.self, configurations: config)
+//    
+//    let sampleUser = User(
+//        id: 1,
+//        name: "Manjit",
+//        createdAt: Date(),
+//        lastCheckInDate: Date(),
+//        currentStreak: 5,
+//        longestStreak: 12
+//    )
+//    container.mainContext.insert(sampleUser)
+//    
+//    return DashboardViewPreviewWrapper()
+//        .modelContainer(container)
+//}
+//
+//struct DashboardViewPreviewWrapper: View {
+//    @Query private var users: [User]
+//    
+//    var weekDays: [CalendarDay] {
+//        WeeklyCalendarHelper.getCurrentWeek()
+//    }
+//    
+//    var monthYear: String {
+//        WeeklyCalendarHelper.getMonthYear()
+//    }
+//    
+//    var body: some View {
+//        NavigationStack {
+//            ScrollView {
+//                VStack(spacing: 20) {
+//                    HStack {
+//                        Text("Hi there, \(users.first?.name ?? "Partner")👋")
+//                            .font(.largeTitle)
+//                            .fontWeight(.bold)
+//                            .foregroundColor(Color("MainText"))
+//                        Spacer()
+//                    }
+//                    .padding(.horizontal)
+//                    .padding(.top, 55)
+//                    
+//                    VStack(spacing: 16) {
+//                        Text(monthYear)
+//                            .font(.title3)
+//                            .fontWeight(.semibold)
+//                            .foregroundColor(.white)
+//                        
+//                        HStack(spacing: 0) {
+//                            ForEach(weekDays) { day in
+//                                VStack(spacing: 3) {
+//                                    Text(day.dayLetter)
+//                                        .font(.caption)
+//                                        .fontWeight(.bold)
+//                                        .foregroundColor(.white.opacity(1))
+//                                    
+//                                    Text("\(day.dayNum)")
+//                                        .font(.system(size: 15, weight: day.isCurrentDay ? .bold : .regular))
+//                                        .foregroundColor(.white)
+//                                        .frame(width: 32, height: 28)
+//                                        .background(
+//                                            Circle()
+//                                                .fill(day.isCurrentDay ? Color("FillBlue") : Color.clear)
+//                                        )
+//                                }
+//                                .frame(maxWidth: .infinity)
+//                            }
+//                        }
+//                        
+//                        VStack(spacing: 8) {
+//                            Text("Ready to check in...?")
+//                                .font(.title2)
+//                                .fontWeight(.semibold)
+//                                .foregroundColor(.white)
+//                            
+//                            NavigationLink(destination: Text("Conversation")) {
+//                                Text("Let's go!")
+//                                    .font(.subheadline)
+//                                    .fontWeight(.medium)
+//                                    .foregroundColor(.pink)
+//                                    .padding(.horizontal, 24)
+//                                    .padding(.vertical, 8)
+//                                    .background(Color.white)
+//                                    .cornerRadius(20)
+//                            }
+//                        }
+//                        .padding(.top, 8)
+//                    }
+//                    .padding()
+//                    .background(
+//                        LinearGradient(
+//                            colors: [Color("AccentCoral"), Color("AccentPink").opacity(0.65)],
+//                            startPoint: .leading,
+//                            endPoint: .trailing
+//                        )
+//                    )
+//                    .cornerRadius(16)
+//                    .padding(.horizontal)
+//                    
+//                    HStack(spacing: 16){
+//                        WeeklyCheckIn(completedDays: 3)
+//                        StreakCard(currentStreak: users.first?.currentStreak ?? 0)
+//                    }
+//                    .padding(.horizontal)
+//                }
+//            }
+//            .background(Color("MainBG"))
+//            .navigationBarHidden(true)
+//        }
+//        .overlay(alignment: .topTrailing) {
+//            if let currentUser = users.first {
+//                ProfileButton(user: currentUser)
+//                    .padding(.trailing, 16)
+//                    .padding(.top, 20)
+//            }
+//        }
+//    }
+//}

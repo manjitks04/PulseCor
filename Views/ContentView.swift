@@ -35,6 +35,7 @@ struct ContentView: View {
                 .tag(AppTab.pulsecor)
                 .tabItem { Label("PulseCor", systemImage: "checkmark.shield") }
         }
+        .environmentObject(navManager)
         .toolbarBackground(Color("MainBG"), for: .tabBar)
         .toolbarBackground(.visible, for: .tabBar)
         .preferredColorScheme(isDarkMode ? .dark : .light)
@@ -47,6 +48,17 @@ struct ContentView: View {
                 navManager.pendingTab = nil
             }
         }
+        .onChange(of: navManager.pendingTab) {
+            if let pending = navManager.pendingTab {
+                navManager.selectedTab = pending
+                navManager.pendingTab = nil
+            }
+        }
+        .onChange(of: navManager.pendingMedication) { _, newValue in
+                    if newValue != nil {
+                        navManager.selectedTab = .home
+                    }
+                }
         .alert("Health Access Disconnected", isPresented: $healthManager.accessRevoked) {
             Button("Open Settings") { healthManager.openSettings() }
             Button("Cancel", role: .cancel) { healthManager.accessRevoked = false }

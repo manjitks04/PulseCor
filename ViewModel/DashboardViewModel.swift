@@ -20,6 +20,8 @@ class DashboardViewModel: ObservableObject {
     
     @Published var featuredArticles: [Article] = []
     
+    @Published var pendingMedicationAlert: (id: Int, name: String, dosage: String, time: String)? = nil
+    
     private let databaseService: DatabaseService
     
     //Initialisation
@@ -50,7 +52,7 @@ class DashboardViewModel: ObservableObject {
                 limit: 3
             )
             
-            calculateAverages()
+//            calculateAverages()
             
         } catch let error as PulseCorError {
             self.errorMessage = error.errorDescription
@@ -60,30 +62,30 @@ class DashboardViewModel: ObservableObject {
     }
     
     //calc Logic
-    private func calculateAverages() {
-        guard !recentCheckIns.isEmpty else {
-            averageSleepHours = 0
-            averageWaterGlasses = 0
-            return
-        }
-        
-        // -avg water
-        let waterValues = recentCheckIns.compactMap { checkIn -> Double? in
-            guard let intake = checkIn.waterGlasses else { return nil }
-            
-            switch intake {
-            case .veryHigh: return 8.0
-            case .high:     return 5.5
-            case .moderate: return 3.5
-            case .low:      return 1.0
-            }
-        }
-        
-        averageWaterGlasses = waterValues.isEmpty ? 0 : waterValues.reduce(0, +) / Double(waterValues.count)
-        
-        func hasCheckedInToday() -> Bool {
-            guard let lastCheckIn = lastCheckInDate else { return false }
-            return Calendar.current.isDateInToday(lastCheckIn)
-        }
-    }
+//    private func calculateAverages() {
+//        guard !recentCheckIns.isEmpty else {
+//            averageSleepHours = 0
+//            averageWaterGlasses = 0
+//            return
+//        }
+//        
+//        // -avg water
+//        let waterValues = recentCheckIns.compactMap { checkIn -> Double? in
+//            guard let intake = checkIn.waterGlasses else { return nil }
+//            
+//            switch intake {
+//            case .veryHigh: return 8.0
+//            case .high:     return 5.5
+//            case .moderate: return 3.5
+//            case .low:      return 1.0
+//            }
+//        }
+//        
+//        averageWaterGlasses = waterValues.isEmpty ? 0 : waterValues.reduce(0, +) / Double(waterValues.count)
+//        
+//        func hasCheckedInToday() -> Bool {
+//            guard let lastCheckIn = lastCheckInDate else { return false }
+//            return Calendar.current.isDateInToday(lastCheckIn)
+//        }
+//    }
 }
