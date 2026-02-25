@@ -6,12 +6,9 @@ import SwiftUI
 
 struct ProfileButton: View {
     @Bindable var user: User
-    @State private var showingSettings = false
     
     var body: some View {
-        Button {
-            showingSettings = true
-        } label: {
+        NavigationLink(destination: SettingsView()) {
             Image(systemName: "person.fill")
                 .foregroundColor(.gray)
                 .font(.appSubtitle)
@@ -19,9 +16,6 @@ struct ProfileButton: View {
                 .background(Circle().fill(Color("LightGreen")))
         }
         .buttonStyle(PlainButtonStyle())
-        .fullScreenCover(isPresented: $showingSettings) {
-            SettingsView()
-        }
     }
 }
 

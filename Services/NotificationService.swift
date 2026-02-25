@@ -4,7 +4,6 @@
 //
 //
 //to create and implement in order to recieve alerts within app (medication, check-ins, reflections, foreground suppression logic)
-
 import UserNotifications
 import Foundation
 
@@ -16,7 +15,7 @@ class NotificationService: NSObject, UNUserNotificationCenterDelegate {
         UNUserNotificationCenter.current().delegate = self //register as delegate so iOS routes notification events here
     }
     
-    //called when a notification arrives while the app is open — decides whether to show it or suppress it
+    // called when a notification arrives while the app is open
     func userNotificationCenter(
         _ center: UNUserNotificationCenter,
         willPresent notification: UNNotification,
@@ -31,6 +30,32 @@ class NotificationService: NSObject, UNUserNotificationCenterDelegate {
             // suppress daily check-in app
             completionHandler([])
         }
+    }
+    
+    // called when the user taps a notification — routes them to the correct tab
+    func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        didReceive response: UNNotificationResponse,
+        withCompletionHandler completionHandler: @escaping () -> Void
+    ) {
+        let id = response.notification.request.identifier
+        let userInfo = response.notification.request.content.userInfo
+        
+        DispatchQueue.main.async {
+            if id == "daily-checkin" || id == "weekly-reflection" {
+                NavigationManager.shared.pendingTab = .cora
+            } else if id.hasPrefix("medication-") {
+                if let medId = userInfo["medicationId"] as? Int ?? (userInfo["medicationId"] as? NSNumber)?.intValue,
+                   let medName = userInfo["medicationName"] as? String,
+                   let dosage = userInfo["dosage"] as? String,
+                   let time = userInfo["scheduledTime"] as? String {
+                    NavigationManager.shared.pendingMedication = PendingMedication(id: medId, name: medName, dosage: dosage, time: time)
+                }
+                NavigationManager.shared.pendingTab = .home
+            }
+        }
+        
+        completionHandler()
     }
     
     func requestAuthorization(completion: @escaping (Bool) -> Void) {
@@ -57,8 +82,8 @@ class NotificationService: NSObject, UNUserNotificationCenterDelegate {
                   let minute = Int(components[1]) else { continue }
             
             let content = UNMutableNotificationContent()
-            content.title = "💊 Medication Reminder"
-            content.body = "\(medicationName), \(dosage)"
+            content.title = "Here's your medication reminder 💊"
+            content.body = "\(medicationName) · \(dosage)"
             content.sound = .default
             content.userInfo = [ // extra data passed along with the notification for handling on tap
                 "medicationId": medicationId,
@@ -93,8 +118,6 @@ class NotificationService: NSObject, UNUserNotificationCenterDelegate {
         }
     }
     
-    // schedules a daily repeating check-in reminder at the user's chosen time
-
     func scheduleDailyCheckIn(hour: Int, minute: Int, isAM: Bool) {
         let center = UNUserNotificationCenter.current()
         center.removePendingNotificationRequests(withIdentifiers: ["daily-checkin"])
@@ -105,7 +128,7 @@ class NotificationService: NSObject, UNUserNotificationCenterDelegate {
         content.sound = .default
         
         var dateComponents = DateComponents()
-        dateComponents.hour = isAM ? (hour == 12 ? 0 : hour) : (hour == 12 ? 12 : hour + 12)
+        dateComponents.hour = hour
         dateComponents.minute = minute
         
         let trigger = UNCalendarNotificationTrigger(dateMatching: dateComponents, repeats: true)
@@ -122,7 +145,6 @@ class NotificationService: NSObject, UNUserNotificationCenterDelegate {
         UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: ["daily-checkin"])
     }
     
-    // schedules a weekly reflection every Sunday at the user's chosen time
     func scheduleWeeklyReflection(hour: Int, minute: Int, isAM: Bool) {
         let center = UNUserNotificationCenter.current()
         center.removePendingNotificationRequests(withIdentifiers: ["weekly-reflection"])
@@ -134,7 +156,7 @@ class NotificationService: NSObject, UNUserNotificationCenterDelegate {
         
         var dateComponents = DateComponents()
         dateComponents.weekday = 1
-        dateComponents.hour = isAM ? (hour == 12 ? 0 : hour) : (hour == 12 ? 12 : hour + 12)
+        dateComponents.hour = hour
         dateComponents.minute = minute
         
         let trigger = UNCalendarNotificationTrigger(dateMatching: dateComponents, repeats: true)
@@ -151,20 +173,15 @@ class NotificationService: NSObject, UNUserNotificationCenterDelegate {
         UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: ["weekly-reflection"])
     }
     
-    // called when the user taps a notification — routes them to the correct tab
-    func userNotificationCenter(
-        _ center: UNUserNotificationCenter,
-        didReceive response: UNNotificationResponse,
-        withCompletionHandler completionHandler: @escaping () -> Void
-    ) {
-        let id = response.notification.request.identifier
+    func snoozeMedicationReminder(medicationId: Int, medicationName: String, dosage: String) {
+        let content = UNMutableNotificationContent()
+        content.title = "💊 Medication Reminder"
+        content.body = "\(medicationName), \(dosage)"
+        content.sound = .default
         
-        if id == "daily-checkin" || id == "weekly-reflection" {
-            NavigationManager.shared.pendingTab = .cora
-        } else if id.hasPrefix("medication-") {
-            NavigationManager.shared.pendingTab = .pulsecor
-        }
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 1800, repeats: false)
+        let request = UNNotificationRequest(identifier: "snooze-\(medicationId)", content: content, trigger: trigger)
         
-        completionHandler()
+        UNUserNotificationCenter.current().add(request)
     }
 }

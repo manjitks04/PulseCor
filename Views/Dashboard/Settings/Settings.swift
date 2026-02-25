@@ -2,7 +2,6 @@
 //  Settings.swift
 //  PulseCor
 //
-
 import SwiftUI
 import SwiftData
 
@@ -23,12 +22,10 @@ struct SettingsView: View {
     @AppStorage("dailyCheckInEnabled") private var dailyCheckInEnabled: Bool = true
     @AppStorage("checkInHour") private var checkInHour: Int = 11
     @AppStorage("checkInMinute") private var checkInMinute: Int = 6
-    @AppStorage("isAM") private var isAM: Bool = true
     
     @AppStorage("weeklyReflectionEnabled") private var weeklyReflectionEnabled: Bool = true
     @AppStorage("weeklyReflectionHour") private var weeklyReflectionHour: Int = 18
     @AppStorage("weeklyReflectionMinute") private var weeklyReflectionMinute: Int = 0
-    @AppStorage("weeklyReflectionIsAM") private var weeklyReflectionIsAM: Bool = false
     
     @State private var showingHealthError: Bool = false
     @State private var healthErrorMessage: String = ""
@@ -37,40 +34,12 @@ struct SettingsView: View {
     @State private var showingAddMedication = false
     @State private var medicationToEdit: Medication?
 
-    
     var currentUser: User? {
         users.first
     }
     
     var body: some View {
-        VStack(spacing: 0) {
-            HStack {
-                Button(action: {
-                    dismiss()
-                }) {
-                    Text("X")
-                        .font(.title3)
-                        .fontWeight(.medium)
-                        .foregroundColor(Color("MainText"))
-                }
-                
-                Spacer()
-                
-                Text("Settings")
-                    .font(.title2)
-                    .fontWeight(.semibold)
-                    .foregroundColor(Color("MainText"))
-                
-                Spacer()
-                
-                Text("X")
-                    .font(.title3)
-                    .fontWeight(.medium)
-                    .foregroundColor(.clear)
-            }
-            .padding()
-            .background(Color("MainBG"))
-            
+        NavigationStack {
             ScrollView {
                 VStack(spacing: 24) {
                     HStack(spacing: 16) {
@@ -152,7 +121,6 @@ struct SettingsView: View {
                                                     .fill(isDarkMode ? .clear : Color.blue)
                                                     .padding(3)
                                             )
-                                        
                                         Text("Light")
                                             .font(.system(size: 16, weight: .medium))
                                             .foregroundColor(Color("TextBlue"))
@@ -182,7 +150,6 @@ struct SettingsView: View {
                                                     .fill(isDarkMode ? Color.blue : .clear)
                                                     .padding(3)
                                             )
-                                        
                                         Text("Dark")
                                             .font(.system(size: 16, weight: .medium))
                                             .foregroundColor(Color("TextBlue"))
@@ -227,10 +194,8 @@ struct SettingsView: View {
                             Toggle("", isOn: $healthSyncEnabled)
                                 .labelsHidden()
                                 .tint(Color("AccentPink"))
-                                .onChange(of: healthSyncEnabled) { oldValue, newValue in
-                                    if newValue {
-                                        requestHealthKitAuth()
-                                    }
+                                .onChange(of: healthSyncEnabled) { _, newValue in
+                                    if newValue { requestHealthKitAuth() }
                                 }
                         }
                         .padding()
@@ -249,18 +214,17 @@ struct SettingsView: View {
                             .fontWeight(.semibold)
                             .foregroundColor(Color("TextBlue"))
                         
+                        // Daily Check-In
                         VStack(spacing: 12) {
                             HStack {
                                 Text("Daily Check - In")
                                     .font(.body)
                                     .foregroundColor(Color("MainText"))
-                                
                                 Spacer()
-                                
                                 Toggle("", isOn: $dailyCheckInEnabled)
                                     .labelsHidden()
                                     .tint(Color("AccentPink"))
-                                    .onChange(of: dailyCheckInEnabled) { oldValue, newValue in
+                                    .onChange(of: dailyCheckInEnabled) { _, newValue in
                                         if newValue {
                                             scheduleDailyCheckInNotification()
                                         } else {
@@ -270,89 +234,8 @@ struct SettingsView: View {
                             }
                             
                             if dailyCheckInEnabled {
-                                HStack(spacing: 12) {
-                                    Spacer()
-                                    
-                                    HStack(spacing: 4) {
-                                        Button(action: {
-                                            if checkInHour > 1 {
-                                                checkInHour -= 1
-                                            } else {
-                                                checkInHour = 12
-                                            }
-                                            scheduleDailyCheckInNotification()
-                                        }) {
-                                            Image(systemName: "minus.circle.fill")
-                                                .foregroundColor(Color("AccentPink").opacity(0.9))
-                                        }
-                                        
-                                        Text(String(format: "%02d", checkInHour))
-                                            .font(.body)
-                                            .fontWeight(.semibold)
-                                            .foregroundColor(.white)
-                                            .frame(width: 40, height: 30)
-                                            .background(Color("AccentCoral"))
-                                            .cornerRadius(8)
-                                        
-                                        Button(action: {
-                                            if checkInHour < 12 {
-                                                checkInHour += 1
-                                            } else {
-                                                checkInHour = 1
-                                            }
-                                            scheduleDailyCheckInNotification()
-                                        }) {
-                                            Image(systemName: "plus.circle.fill")
-                                                .foregroundColor(Color("AccentPink").opacity(0.9))
-                                        }
-                                    }
-                                    
-                                    HStack(spacing: 4) {
-                                        Button(action: {
-                                            if checkInMinute > 0 {
-                                                checkInMinute -= 1
-                                            } else {
-                                                checkInMinute = 59
-                                            }
-                                            scheduleDailyCheckInNotification()
-                                        }) {
-                                            Image(systemName: "minus.circle.fill")
-                                                .foregroundColor(Color("AccentPink").opacity(0.9))
-                                        }
-                                        
-                                        Text(String(format: "%02d", checkInMinute))
-                                            .font(.body)
-                                            .fontWeight(.semibold)
-                                            .foregroundColor(.white)
-                                            .frame(width: 40, height: 30)
-                                            .background(Color("AccentCoral"))
-                                            .cornerRadius(8)
-                                        
-                                        Button(action: {
-                                            if checkInMinute < 59 {
-                                                checkInMinute += 1
-                                            } else {
-                                                checkInMinute = 0
-                                            }
-                                            scheduleDailyCheckInNotification()
-                                        }) {
-                                            Image(systemName: "plus.circle.fill")
-                                                .foregroundColor(Color("AccentPink").opacity(0.9))
-                                        }
-                                    }
-                                    
-                                    Button(action: {
-                                        isAM.toggle()
-                                        scheduleDailyCheckInNotification()
-                                    }) {
-                                        Text(isAM ? "AM" : "PM")
-                                            .font(.body)
-                                            .fontWeight(.semibold)
-                                            .foregroundColor(.white)
-                                            .frame(width: 50, height: 30)
-                                            .background(Color("AccentCoral").opacity(0.9))
-                                            .cornerRadius(8)
-                                    }
+                                TimePickerRow(hour: $checkInHour, minute: $checkInMinute) {
+                                    scheduleDailyCheckInNotification()
                                 }
                             }
                         }
@@ -364,18 +247,17 @@ struct SettingsView: View {
                                 .stroke(Color.gray.opacity(0.2), lineWidth: 1)
                         )
                         
+                        // Weekly Reflection
                         VStack(spacing: 12) {
                             HStack {
                                 Text("Weekly Reflection")
                                     .font(.body)
                                     .foregroundColor(Color("MainText"))
-                                
                                 Spacer()
-                                
                                 Toggle("", isOn: $weeklyReflectionEnabled)
                                     .labelsHidden()
                                     .tint(Color("AccentPink"))
-                                    .onChange(of: weeklyReflectionEnabled) { oldValue, newValue in
+                                    .onChange(of: weeklyReflectionEnabled) { _, newValue in
                                         if newValue {
                                             scheduleWeeklyReflectionNotification()
                                         } else {
@@ -389,90 +271,8 @@ struct SettingsView: View {
                                     Text("Every Sunday at")
                                         .font(.caption)
                                         .foregroundColor(Color("MainText").opacity(0.7))
-                                    
-                                    HStack(spacing: 12) {
-                                        Spacer()
-                                        
-                                        HStack(spacing: 4) {
-                                            Button(action: {
-                                                if weeklyReflectionHour > 1 {
-                                                    weeklyReflectionHour -= 1
-                                                } else {
-                                                    weeklyReflectionHour = 12
-                                                }
-                                                scheduleWeeklyReflectionNotification()
-                                            }) {
-                                                Image(systemName: "minus.circle.fill")
-                                                    .foregroundColor(Color("AccentPink").opacity(0.9))
-                                            }
-                                            
-                                            Text(String(format: "%02d", weeklyReflectionHour))
-                                                .font(.body)
-                                                .fontWeight(.semibold)
-                                                .foregroundColor(.white)
-                                                .frame(width: 40, height: 30)
-                                                .background(Color("AccentCoral"))
-                                                .cornerRadius(8)
-                                            
-                                            Button(action: {
-                                                if weeklyReflectionHour < 12 {
-                                                    weeklyReflectionHour += 1
-                                                } else {
-                                                    weeklyReflectionHour = 1
-                                                }
-                                                scheduleWeeklyReflectionNotification()
-                                            }) {
-                                                Image(systemName: "plus.circle.fill")
-                                                    .foregroundColor(Color("AccentPink").opacity(0.9))
-                                            }
-                                        }
-                                        
-                                        HStack(spacing: 4) {
-                                            Button(action: {
-                                                if weeklyReflectionMinute > 0 {
-                                                    weeklyReflectionMinute -= 1
-                                                } else {
-                                                    weeklyReflectionMinute = 59
-                                                }
-                                                scheduleWeeklyReflectionNotification()
-                                            }) {
-                                                Image(systemName: "minus.circle.fill")
-                                                    .foregroundColor(Color("AccentPink").opacity(0.9))
-                                            }
-                                            
-                                            Text(String(format: "%02d", weeklyReflectionMinute))
-                                                .font(.body)
-                                                .fontWeight(.semibold)
-                                                .foregroundColor(.white)
-                                                .frame(width: 40, height: 30)
-                                                .background(Color("AccentCoral"))
-                                                .cornerRadius(8)
-                                            
-                                            Button(action: {
-                                                if weeklyReflectionMinute < 59 {
-                                                    weeklyReflectionMinute += 1
-                                                } else {
-                                                    weeklyReflectionMinute = 0
-                                                }
-                                                scheduleWeeklyReflectionNotification()
-                                            }) {
-                                                Image(systemName: "plus.circle.fill")
-                                                    .foregroundColor(Color("AccentPink").opacity(0.9))
-                                            }
-                                        }
-                                        
-                                        Button(action: {
-                                            weeklyReflectionIsAM.toggle()
-                                            scheduleWeeklyReflectionNotification()
-                                        }) {
-                                            Text(weeklyReflectionIsAM ? "AM" : "PM")
-                                                .font(.body)
-                                                .fontWeight(.semibold)
-                                                .foregroundColor(.white)
-                                                .frame(width: 50, height: 30)
-                                                .background(Color("AccentCoral").opacity(0.9))
-                                                .cornerRadius(8)
-                                        }
+                                    TimePickerRow(hour: $weeklyReflectionHour, minute: $weeklyReflectionMinute) {
+                                        scheduleWeeklyReflectionNotification()
                                     }
                                 }
                             }
@@ -493,9 +293,7 @@ struct SettingsView: View {
                                 .font(.title)
                                 .fontWeight(.semibold)
                                 .foregroundColor(Color("TextBlue"))
-                            
                             Spacer()
-                            
                             Button(action: {
                                 medicationToEdit = nil
                                 showingAddMedication = true
@@ -536,6 +334,8 @@ struct SettingsView: View {
                 }
             }
             .background(Color("MainBG"))
+            .navigationTitle("Settings")
+            .navigationBarTitleDisplayMode(.large)
         }
         .background(Color("MainBG"))
         .preferredColorScheme(isDarkMode ? .dark : .light)
@@ -547,9 +347,7 @@ struct SettingsView: View {
             }
         }
         .onChange(of: showingAddMedication) { _, newValue in
-            if !newValue {
-                medicationToEdit = nil
-            }
+            if !newValue { medicationToEdit = nil }
         }
     }
     
@@ -563,22 +361,22 @@ struct SettingsView: View {
     private func requestHealthKitAuth() {
         HealthKitService.shared.requestAuth { success, error in
             DispatchQueue.main.async {
-                    if !success {
-                        let pulseError = PulseCorError.healthKitAuthFailed(
-                            error?.localizedDescription ?? "Unknown error"
-                        )
-                        healthErrorMessage = pulseError.errorDescription ?? "Failed to authorize HealthKit"
-                        showingHealthError = true
-                    }
+                if !success {
+                    let pulseError = PulseCorError.healthKitAuthFailed(
+                        error?.localizedDescription ?? "Unknown error"
+                    )
+                    healthErrorMessage = pulseError.errorDescription ?? "Failed to authorize HealthKit"
+                    showingHealthError = true
                 }
             }
         }
-    
+    }
+   
     private func scheduleDailyCheckInNotification() {
         NotificationService.shared.scheduleDailyCheckIn(
             hour: checkInHour,
             minute: checkInMinute,
-            isAM: isAM
+            isAM: checkInHour < 12
         )
     }
     
@@ -586,8 +384,80 @@ struct SettingsView: View {
         NotificationService.shared.scheduleWeeklyReflection(
             hour: weeklyReflectionHour,
             minute: weeklyReflectionMinute,
-            isAM: weeklyReflectionIsAM
+            isAM: weeklyReflectionHour < 12
         )
+    }
+}
+
+
+private struct TimePickerRow: View {
+    @Binding var hour: Int
+    @Binding var minute: Int
+    let onChange: () -> Void
+    
+    var body: some View {
+        HStack(spacing: 8) {
+            Spacer()
+            
+            // Hour (0–23)
+            HStack(spacing: 4) {
+                Button(action: {
+                    hour = hour > 0 ? hour - 1 : 23
+                    onChange()
+                }) {
+                    Image(systemName: "minus.circle.fill")
+                        .foregroundColor(Color("AccentPink").opacity(0.9))
+                }
+                
+                Text(String(format: "%02d", hour))
+                    .font(.body)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.white)
+                    .frame(width: 40, height: 30)
+                    .background(Color("AccentCoral"))
+                    .cornerRadius(8)
+                
+                Button(action: {
+                    hour = hour < 23 ? hour + 1 : 0
+                    onChange()
+                }) {
+                    Image(systemName: "plus.circle.fill")
+                        .foregroundColor(Color("AccentPink").opacity(0.9))
+                }
+            }
+            
+            Text(":")
+                .font(.body)
+                .fontWeight(.semibold)
+                .foregroundColor(Color("MainText"))
+            
+            // Minute (0–59)
+            HStack(spacing: 4) {
+                Button(action: {
+                    minute = minute > 0 ? minute - 1 : 59
+                    onChange()
+                }) {
+                    Image(systemName: "minus.circle.fill")
+                        .foregroundColor(Color("AccentPink").opacity(0.9))
+                }
+                
+                Text(String(format: "%02d", minute))
+                    .font(.body)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.white)
+                    .frame(width: 40, height: 30)
+                    .background(Color("AccentCoral"))
+                    .cornerRadius(8)
+                
+                Button(action: {
+                    minute = minute < 59 ? minute + 1 : 0
+                    onChange()
+                }) {
+                    Image(systemName: "plus.circle.fill")
+                        .foregroundColor(Color("AccentPink").opacity(0.9))
+                }
+            }
+        }
     }
 }
 
