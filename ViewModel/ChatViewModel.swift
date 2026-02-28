@@ -184,7 +184,7 @@ class ChatViewModel: ObservableObject {
             let streak = try updateUserStreak()
             
 //            let streak = try databaseService.getUser()?.currentStreak ?? 1
-            sendCoraMessage(content: "Perfect, you're all done for the day! You're on a \(streak)-day streak! 🎉 See you tomorrow!") //STREAK NOT WORKING, FALLBACK VAL PRESENT
+            sendCoraMessage(content: "Perfect, you're all done for the day! You're on a \(streak)-day streak! 🎉 See you tomorrow!") 
             
             completeConversation(flow: &flow)
         } catch {
@@ -349,18 +349,29 @@ class ChatViewModel: ObservableObject {
             handleError(PulseCorError.fetchFailed("Conversation history unavailable"))
         }
     }
-
+    
     private func updateUserStreak() throws -> Int {
         guard let user = try databaseService.getUser() else { return 1 }
         let calendar = Calendar.current
         var newStreak = 1
+
         if let lastCheckIn = user.lastCheckInDate {
-            let days = calendar.dateComponents([.day], from: lastCheckIn, to: Date()).day ?? 0
+            let lastStart = calendar.startOfDay(for: lastCheckIn)   // ← strip time
+            let todayStart = calendar.startOfDay(for: Date())       // ← strip time
+            
+            let days = calendar.dateComponents([.day], from: lastStart, to: todayStart).day ?? 0
+            
             if days == 1 { newStreak = user.currentStreak + 1 }
             else if days > 1 { newStreak = 1 }
             else { newStreak = user.currentStreak }
         }
-        try databaseService.updateUserStreak(userId: user.id, currentStreak: newStreak, longestStreak: max(user.longestStreak, newStreak), lastCheckIn: Date())
+
+        try databaseService.updateUserStreak(
+            userId: user.id,
+            currentStreak: newStreak,
+            longestStreak: max(user.longestStreak, newStreak),
+            lastCheckIn: Date()
+        )
         return newStreak
     }
     //        let actualStreak = try databaseService.getCurrentStreak(userId: user.id)
