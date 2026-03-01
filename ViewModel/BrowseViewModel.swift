@@ -2,60 +2,46 @@
 //  BrowseViewModel.swift
 //  PulseCor
 //
-//
 import Foundation
+import SwiftData
 import Combine
 
+@MainActor
 class BrowseViewModel: ObservableObject {
+
     @Published var generalArticles: [Article] = []
     @Published var selectedCategoryArticles: [Article] = []
     @Published var selectedCategoryFAQs: [Article] = []
     @Published var errorMessage: String?
-    
-    private let databaseService: DatabaseService
-    private static var hasLoadedThisSession = false // shared across all instances, persists until app is killed
-    
-    init(databaseService: DatabaseService = .shared) {
-        self.databaseService = databaseService
-        
+
+    private var modelContext: ModelContext?
+    private static var hasLoadedThisSession = false
+
+    init() {}
+
+    func setContext(_ context: ModelContext) {
+        self.modelContext = context
         if !BrowseViewModel.hasLoadedThisSession {
-                    loadRandomArticles()
-                    BrowseViewModel.hasLoadedThisSession = true // prevent reloading until next app launch
+            loadRandomArticles()
+            BrowseViewModel.hasLoadedThisSession = true
         }
     }
-    
-    //3 of 9 rotation
+
     func loadRandomArticles() {
-        do {
-            generalArticles = try databaseService.getRandomArticles(
-                category: nil,
-                type: .helpfulArticle,
-                limit: 9
-            )
-        } catch {
-            handleError(error)
-        }
+        let all = fetchAllArticles()
+        generalArticles = Array(all.filter { $0.articleType == .helpfulArticle }.shuffled().prefix(9))
     }
-    
+
     func loadCategoryArticles(category: ArticleCategory) {
-        do {
-            selectedCategoryArticles = try databaseService.getRandomArticles(
-                category: category,
-                type: .helpfulArticle,
-                limit: 3
-            )
-            
-            selectedCategoryFAQs = try databaseService.getArticlesByCategory(
-                category: category,
-                type: .faq
-            )
-        } catch {
-            handleError(error)
-        }
+        let all = fetchAllArticles()
+        selectedCategoryArticles = Array(
+            all.filter { $0.category == category && $0.articleType == .helpfulArticle }.shuffled().prefix(3)
+        )
+        selectedCategoryFAQs = all.filter { $0.category == category && $0.articleType == .faq }
     }
-    
-    private func handleError(_ error: Error) {
-        print("BrowseViewModel Error: \(error)")
-        errorMessage = "Failed to load articles. Please try again."
+
+    private func fetchAllArticles() -> [Article] {
+        guard let modelContext else { return [] }
+        return (try? modelContext.fetch(FetchDescriptor<Article>())) ?? []
     }
 }

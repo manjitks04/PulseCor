@@ -2,22 +2,29 @@
 //  MedicationReminder.swift
 //  PulseCor
 //
-//
 import Foundation
+import SwiftData
 
-//The main schedule/setting for a medication
-struct Medication: Codable, Identifiable {
-    let id: Int?
-    let userId: Int
-    let name: String
-    let dosage: String
-    let frequency: String
-    var reminderTimes: [String]?
+@Model
+class Medication {
+    var userId: Int
+    var name: String
+    var dosage: String
+    var frequency: String
+    var reminderTimes: [String]   // SwiftData handles [String] natively — no more comma-joining
     var isActive: Bool
-    let createdAt: Date
-    
-    init(id: Int? = nil, userId: Int = 1, name: String, dosage: String, frequency: String, reminderTimes: [String]? = nil, isActive: Bool = true, createdAt: Date = Date()) {
-        self.id = id
+    var createdAt: Date
+    var localId: UUID
+
+    init(
+        userId: Int = 1,
+        name: String,
+        dosage: String,
+        frequency: String,
+        reminderTimes: [String] = [],
+        isActive: Bool = true,
+        createdAt: Date = Date()
+    ) {
         self.userId = userId
         self.name = name
         self.dosage = dosage
@@ -25,28 +32,48 @@ struct Medication: Codable, Identifiable {
         self.reminderTimes = reminderTimes
         self.isActive = isActive
         self.createdAt = createdAt
+        self.localId = UUID()
     }
 }
 
-//The specific record of an event (Taken, Skipped, etc.)
-struct MedicationLog: Codable {
-    let id: Int?
-    let medicationId: Int
-    let status: MedicationStatus
-    let timestamp: Date
-    let scheduledTime: String // Which reminder time this was for
-}
+@Model
+class MedicationLog {
+    var medicationLocalId: UUID
+    var status: MedicationStatus
+    var timestamp: Date
+    var scheduledTime: String
 
-struct MedicationLogEntry {
-    let medicationId: Int
-    let name: String
-    let dosage: String
-    let status: MedicationStatus
-    let timestamp: Date
+    // Denormalised for calendar lookups — avoids needing a join
+    var medicationName: String
+    var medicationDosage: String
+
+    init(
+        medicationLocalId: UUID,
+        medicationName: String,
+        medicationDosage: String,
+        status: MedicationStatus,
+        scheduledTime: String,
+        timestamp: Date = Date()
+    ) {
+        self.medicationLocalId = medicationLocalId
+        self.medicationName = medicationName
+        self.medicationDosage = medicationDosage
+        self.status = status
+        self.scheduledTime = scheduledTime
+        self.timestamp = timestamp
+    }
 }
 
 enum MedicationStatus: String, Codable, CaseIterable {
     case taken = "Taken"
     case skipped = "Skipped"
     case snoozed = "Remind me later"
+}
+
+struct MedicationLogEntry {
+    let medicationLocalId: UUID
+    let name: String
+    let dosage: String
+    let status: MedicationStatus
+    let timestamp: Date
 }

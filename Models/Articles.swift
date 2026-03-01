@@ -1,21 +1,27 @@
 //
-//  Articles.swift
+//  Article.swift
 //  PulseCor
 //
-//
 import Foundation
+import SwiftData
 
-struct Article: Codable, Identifiable {
-    let id: Int?
-    let title: String
-    let summary: String
-    let content: String
-    let category: ArticleCategory
-    let articleType: ArticleType
-    let imageName: String?
-    
-    init(id: Int? = nil, title: String, summary: String, content: String, category: ArticleCategory, articleType: ArticleType, imageName: String? = nil) {
-        self.id = id
+@Model
+class Article {
+    var title: String
+    var summary: String
+    var content: String
+    var category: ArticleCategory
+    var articleType: ArticleType
+    var imageName: String?
+
+    init(
+        title: String,
+        summary: String,
+        content: String,
+        category: ArticleCategory,
+        articleType: ArticleType,
+        imageName: String? = nil
+    ) {
         self.title = title
         self.summary = summary
         self.content = content
@@ -24,6 +30,7 @@ struct Article: Codable, Identifiable {
         self.imageName = imageName
     }
 }
+
 
 enum ArticleCategory: String, Codable, CaseIterable {
     case cardiovascular = "Cardiovascular Health"

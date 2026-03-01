@@ -10,8 +10,8 @@ enum AppTab {
     case home, cora, browse, pulsecor, health
 }
 
-struct PendingMedication: Equatable {
-    let id: Int
+struct PendingMedication: Equatable, Identifiable {
+    let id: String
     let name: String
     let dosage: String
     let time: String

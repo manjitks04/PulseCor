@@ -95,19 +95,14 @@ struct HealthView: View {
             }
             .background(Color("MainBG"))
             .navigationBarHidden(true)
-            .onAppear {
+            .task {
                 guard shouldSync else { return }
                 isSyncing = true
-                HealthKitService.shared.requestAuth { success, _ in
-                    guard success else {
-                        DispatchQueue.main.async { isSyncing = false }
-                        return
-                    }
-                    HealthKitService.shared.syncWeeklySummary(context: context)
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                        isSyncing = false
-                    }
-                }
+                let (success, _) = await HealthKitService.shared.requestAuth()
+                guard success else { isSyncing = false; return }
+                HealthKitService.shared.syncWeeklySummary(context: context)
+                try? await Task.sleep(for: .seconds(2))
+                isSyncing = false
             }
         }
     }

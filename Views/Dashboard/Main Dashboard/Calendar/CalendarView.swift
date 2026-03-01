@@ -2,85 +2,35 @@
 //  CalendarView.swift
 //  PulseCor
 //
-//
 import SwiftUI
+import SwiftData
 
 struct CalendarView: View {
+    @Environment(\.modelContext) private var modelContext
     @StateObject private var viewModel = CalendarViewModel()
     @Environment(\.dismiss) private var dismiss
-
     private let dayHeaders = ["M", "T", "W", "T", "F", "S", "S"]
 
     var body: some View {
         NavigationStack {
             ScrollViewReader { proxy in
                 ScrollView {
-                    VStack(spacing: 24) {
+                    LazyVStack(spacing: 24) {
                         if viewModel.isLoading {
-                            ProgressView()
-                                .padding(.top, 60)
+                            ProgressView().padding(.top, 60)
                         } else {
                             ForEach(viewModel.monthGroups.indices, id: \.self) { monthIndex in
-                                let group = viewModel.monthGroups[monthIndex]
-
-                                VStack(alignment: .leading, spacing: 12) {
-                                    // Month header
-                                    Text(group.monthTitle)
-                                        .font(.title3)
-                                        .fontWeight(.bold)
-                                        .foregroundColor(Color("TextBlue"))
-                                        .padding(.horizontal, 20)
-
-                                    // Day headers
-                                    HStack(spacing: 0) {
-                                        ForEach(dayHeaders, id: \.self) { letter in
-                                            Text(letter)
-                                                .font(.caption)
-                                                .fontWeight(.semibold)
-                                                .foregroundColor(.secondary)
-                                                .frame(maxWidth: .infinity)
-                                        }
-                                    }
-                                    .padding(.horizontal, 12)
-
-                                    // Weeks
-                                    ForEach(group.weeks.indices, id: \.self) { weekIndex in
-                                        HStack(spacing: 0) {
-                                            ForEach(group.weeks[weekIndex]) { day in
-                                                if day.isPlaceholder {
-                                                    // Empty cell for days outside this month
-                                                    Color.clear
-                                                        .frame(maxWidth: .infinity)
-                                                        .frame(height: 64)
-                                                } else if day.isFuture {
-                                                    CalendarDayCell(day: day)
-                                                        .frame(maxWidth: .infinity)
-                                                } else {
-                                                    NavigationLink(destination: DayDetailView(dayStatus: day)) {
-                                                        CalendarDayCell(day: day)
-                                                            .frame(maxWidth: .infinity)
-                                                    }
-                                                    .buttonStyle(.plain)
-                                                }
-                                            }
-                                        }
-                                        .padding(.horizontal, 12)
-                                    }
-                                }
-                                .padding(.vertical, 16)
-                                .background(Color("CardBG"))
-                                .cornerRadius(20)
-                                .padding(.horizontal, 16)
-                                .id(monthIndex)
+                                MonthGroupView(group: viewModel.monthGroups[monthIndex], dayHeaders: dayHeaders)
+                                    .id(monthIndex)
                             }
                         }
                     }
                     .padding(.vertical, 16)
                 }
                 .onAppear {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                    Task {
+                        try? await Task.sleep(for: .seconds(0.2))
                         withAnimation {
-                            // Scroll to current month
                             if let currentIndex = viewModel.currentMonthIndex {
                                 proxy.scrollTo(currentIndex, anchor: .top)
                             }
@@ -91,54 +41,73 @@ struct CalendarView: View {
             .background(Color("MainBG"))
             .navigationTitle("Calendar")
             .navigationBarTitleDisplayMode(.inline)
+            .task {
+                viewModel.setContext(modelContext)
+                viewModel.load()
+            }
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Done") { dismiss() }
-                        .foregroundColor(Color("AccentCoral"))
+                    Button("Done") { dismiss() }.foregroundColor(Color("AccentCoral"))
                 }
             }
         }
-        .onAppear { viewModel.load() }
+    }
+}
+
+struct MonthGroupView: View {
+    let group: MonthGroup; let dayHeaders: [String]
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(group.monthTitle).font(.title3).fontWeight(.bold).foregroundColor(Color("TextBlue")).padding(.horizontal, 20)
+            HStack(spacing: 0) {
+                ForEach(dayHeaders, id: \.self) { letter in
+                    Text(letter).font(.caption).fontWeight(.semibold).foregroundColor(.secondary).frame(maxWidth: .infinity)
+                }
+            }
+            .padding(.horizontal, 12)
+            ForEach(group.weeks.indices, id: \.self) { weekIndex in
+                WeekRowView(week: group.weeks[weekIndex]).padding(.horizontal, 12)
+            }
+        }
+        .padding(.vertical, 16).background(Color("CardBG")).cornerRadius(20).padding(.horizontal, 16)
+    }
+}
+
+struct WeekRowView: View {
+    let week: [DayStatus]
+    var body: some View {
+        HStack(spacing: 0) {
+            ForEach(week) { day in
+                if day.isPlaceholder {
+                    Color.clear.frame(maxWidth: .infinity).frame(height: 64)
+                } else if day.isFuture {
+                    CalendarDayCell(day: day).frame(maxWidth: .infinity)
+                } else {
+                    NavigationLink(destination: DayDetailView(dayStatus: day)) {
+                        CalendarDayCell(day: day).frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
     }
 }
 
 struct CalendarDayCell: View {
     let day: DayStatus
-
-    private var dayNumber: Int {
-        Calendar.current.component(.day, from: day.date)
-    }
-
+    private var dayNumber: Int { Calendar.current.component(.day, from: day.date) }
     var body: some View {
         VStack(spacing: 6) {
-            // Day number
             Text("\(dayNumber)")
                 .font(.system(size: 16, weight: day.isToday ? .bold : .regular))
-                .foregroundColor(
-                    day.isToday ? .white :
-                    day.isFuture ? Color("MainText").opacity(0.25) :
-                    Color("MainText")
-                )
+                .foregroundColor(day.isToday ? .white : day.isFuture ? Color("MainText").opacity(0.25) : Color("MainText"))
                 .frame(width: 36, height: 36)
-                .background(
-                    Circle()
-                        .fill(day.isToday ? Color("FillBlue") : Color.clear)
-                )
-
-            // Dots row
+                .background(Circle().fill(day.isToday ? Color("FillBlue") : Color.clear))
             HStack(spacing: 4) {
                 if !day.isFuture {
-                    // Cora check-in dot
-                    Circle()
-                        .fill(day.hasCheckIn ? Color("AccentPink") : Color.clear)
-                        .frame(width: 6, height: 6)
-
-                    // Medication dot
-                    Circle()
-                        .fill(day.medicationLogs.isEmpty ? Color.clear : Color("AccentCoral"))
-                        .frame(width: 6, height: 6)
+                    Circle().fill(day.hasCheckIn ? Color("AccentPink") : Color.clear).frame(width: 6, height: 6)
+                    Circle().fill(day.medicationLogs.isEmpty ? Color.clear : Color("AccentCoral")).frame(width: 6, height: 6)
                 } else {
-                    // Keep spacing consistent for future days
                     Circle().fill(Color.clear).frame(width: 6, height: 6)
                     Circle().fill(Color.clear).frame(width: 6, height: 6)
                 }

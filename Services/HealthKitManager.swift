@@ -21,12 +21,11 @@ class HealthKitManager: ObservableObject {
     private init() {}
     
     func setup(context: ModelContext) {
-        service.requestAuth { [weak self] success, _ in //prevents memory leak in closure
-            DispatchQueue.main.async { //jump back to main thread after HK's background auth callback
-                self?.isAuthorized = success
-                if success {
-                    self?.service.startObserving(context: context)
-                }
+        Task { [weak self] in
+            let (success, _) = await self?.service.requestAuth() ?? (false, nil)
+            self?.isAuthorized = success
+            if success {
+                self?.service.startObserving(context: context)
             }
         }
     }

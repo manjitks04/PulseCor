@@ -1,137 +1,182 @@
-
 //
 //  HealthKitService.swift
 //  PulseCor
 //
-//core integration of healthkit
+//  Core integration of HealthKit — converted to async/await
 //
 import SwiftData
 import HealthKit
 
-class HealthKitService{
-    let healthStore = HKHealthStore()
+class HealthKitService {
     static let shared = HealthKitService()
-    
-    func requestAuth(completion: @escaping (Bool, Error?) -> Void) {
-        let steps = HKObjectType.quantityType(forIdentifier: .stepCount)!
-        let heartRateType = HKObjectType.quantityType(forIdentifier: .heartRate)!
-        let restingType = HKObjectType.quantityType(forIdentifier: .restingHeartRate)!
-        let hrvType = HKObjectType.quantityType(forIdentifier: .heartRateVariabilitySDNN)!
-        
-        let typesToRead: Set = [steps, heartRateType, restingType, hrvType]
-        
-        healthStore.requestAuthorization(toShare: nil, read: typesToRead) { (success, error) in completion(success, error)
+    let healthStore = HKHealthStore()
+
+    private init() {}
+
+    // MARK: - Authorization
+
+    func requestAuth() async -> (Bool, Error?) {
+        let steps       = HKObjectType.quantityType(forIdentifier: .stepCount)!
+        let heartRate   = HKObjectType.quantityType(forIdentifier: .heartRate)!
+        let resting     = HKObjectType.quantityType(forIdentifier: .restingHeartRate)!
+        let hrv         = HKObjectType.quantityType(forIdentifier: .heartRateVariabilitySDNN)!
+        let typesToRead: Set = [steps, heartRate, resting, hrv]
+
+        // HKHealthStore.requestAuthorization has no native async version —
+        // wrap the callback in a continuation so callers can use await
+        return await withCheckedContinuation { continuation in
+            healthStore.requestAuthorization(toShare: nil, read: typesToRead) { success, error in
+                continuation.resume(returning: (success, error))
+            }
         }
     }
-    
-    //fetches step count data
-    func fetchSteps(since date: Date, context: ModelContext){
-        let stepsQuantityType = HKObjectType.quantityType(forIdentifier: .stepCount)!
+
+    // MARK: - Fetch Methods
+    // HKStatisticsQuery has no native async API — wrapped with withCheckedContinuation
+
+    func fetchSteps(since date: Date, context: ModelContext) async {
+        let type = HKObjectType.quantityType(forIdentifier: .stepCount)!
         let predicate = HKQuery.predicateForSamples(withStart: date, end: Date(), options: .strictStartDate)
-        let query = HKStatisticsQuery(quantityType: stepsQuantityType, quantitySamplePredicate: predicate, options: .cumulativeSum) { _, result, error in
-            
-            guard let result = result, let sum = result.sumQuantity() else {
-                print("Oops, it seems like we haven't found any step data for the week. Please check you've authorised access to HealthKit in your device settings.")
-                return
+
+        let result: HKStatistics? = await withCheckedContinuation { continuation in
+            let query = HKStatisticsQuery(
+                quantityType: type,
+                quantitySamplePredicate: predicate,
+                options: .cumulativeSum
+            ) { _, result, _ in
+                continuation.resume(returning: result)
             }
-            
-            let totalStepsForWeek = sum.doubleValue(for: HKUnit.count())
-            
-            DispatchQueue.main.async {
-                let newEntry = StepEntry(count: totalStepsForWeek, date: Date())
-                context.insert(newEntry)
-                try? context.save()
-            }
+            healthStore.execute(query)
         }
-        healthStore.execute(query)
+
+        guard let sum = result?.sumQuantity() else {
+            print("HealthKitService: no step data found for the week — check HealthKit permissions")
+            return
+        }
+
+        await MainActor.run {
+            let entry = StepEntry(count: sum.doubleValue(for: .count()), date: Date())
+            context.insert(entry)
+            try? context.save()
+        }
     }
-    
-    //fetches heart rate data
-    func fetchHeartRate(since date: Date, context: ModelContext) {
-        let hrType = HKQuantityType.quantityType(forIdentifier: .heartRate)!
+
+    func fetchHeartRate(since date: Date, context: ModelContext) async {
+        let type = HKQuantityType.quantityType(forIdentifier: .heartRate)!
         let predicate = HKQuery.predicateForSamples(withStart: date, end: Date(), options: .strictStartDate)
-        
-        let query = HKStatisticsQuery(quantityType: hrType, quantitySamplePredicate: predicate, options: .discreteAverage) { _, result, _ in
-            guard let result = result, let avg = result.averageQuantity() else { return }
-            
-            let bpmValue = avg.doubleValue(for: HKUnit.count().unitDivided(by: .minute()))
-            
-            DispatchQueue.main.async {
-                let newEntry = HeartRateEntry(bpm: bpmValue, date: Date())
-                context.insert(newEntry)
+
+        let result: HKStatistics? = await withCheckedContinuation { continuation in
+            let query = HKStatisticsQuery(
+                quantityType: type,
+                quantitySamplePredicate: predicate,
+                options: .discreteAverage
+            ) { _, result, _ in
+                continuation.resume(returning: result)
             }
+            healthStore.execute(query)
         }
-        healthStore.execute(query)
+
+        guard let avg = result?.averageQuantity() else { return }
+        let bpm = avg.doubleValue(for: HKUnit.count().unitDivided(by: .minute()))
+
+        await MainActor.run {
+            context.insert(HeartRateEntry(bpm: bpm, date: Date()))
+            try? context.save()
+        }
     }
-    
-    //fetches heart resting data
-    func fetchHeartRestingRate(since date: Date, context: ModelContext) {
-        let restingHRType = HKQuantityType.quantityType(forIdentifier: .restingHeartRate)!
+
+    func fetchHeartRestingRate(since date: Date, context: ModelContext) async {
+        let type = HKQuantityType.quantityType(forIdentifier: .restingHeartRate)!
         let predicate = HKQuery.predicateForSamples(withStart: date, end: Date(), options: .strictStartDate)
-        
-        let query = HKStatisticsQuery(quantityType: restingHRType, quantitySamplePredicate: predicate, options: .discreteAverage) { _, result, _ in
-            guard let result = result, let avg = result.averageQuantity() else { return }
-            
-            let value = avg.doubleValue(for: HKUnit.count().unitDivided(by: .minute()))
-            
-            DispatchQueue.main.async {
-                let newEntry = RestingHeartRateEntry(bpm: value, date: Date())
-                context.insert(newEntry)
+
+        let result: HKStatistics? = await withCheckedContinuation { continuation in
+            let query = HKStatisticsQuery(
+                quantityType: type,
+                quantitySamplePredicate: predicate,
+                options: .discreteAverage
+            ) { _, result, _ in
+                continuation.resume(returning: result)
             }
+            healthStore.execute(query)
         }
-        healthStore.execute(query)
+
+        guard let avg = result?.averageQuantity() else { return }
+        let bpm = avg.doubleValue(for: HKUnit.count().unitDivided(by: .minute()))
+
+        await MainActor.run {
+            context.insert(RestingHeartRateEntry(bpm: bpm, date: Date()))
+            try? context.save()
+        }
     }
-    
-    //fetches heartRateVariabilitySDNN data
-    func fetchHeartRateVar(since date: Date, context: ModelContext) {
-        let restingHRType = HKQuantityType.quantityType(forIdentifier: .heartRateVariabilitySDNN)!
+
+    func fetchHeartRateVar(since date: Date, context: ModelContext) async {
+        let type = HKQuantityType.quantityType(forIdentifier: .heartRateVariabilitySDNN)!
         let predicate = HKQuery.predicateForSamples(withStart: date, end: Date(), options: .strictStartDate)
-        
-        let query = HKStatisticsQuery(quantityType: restingHRType, quantitySamplePredicate: predicate, options: .discreteAverage) { _, result, _ in
-            guard let result = result, let avg = result.averageQuantity() else { return }
-            
-            let value = avg.doubleValue(for: .secondUnit(with: .milli))
-            
-            DispatchQueue.main.async {
-                let newEntry = HRVEntry(ms: value, date: Date())
-                context.insert(newEntry)
+
+        let result: HKStatistics? = await withCheckedContinuation { continuation in
+            let query = HKStatisticsQuery(
+                quantityType: type,
+                quantitySamplePredicate: predicate,
+                options: .discreteAverage
+            ) { _, result, _ in
+                continuation.resume(returning: result)
             }
+            healthStore.execute(query)
         }
-        healthStore.execute(query)
+
+        guard let avg = result?.averageQuantity() else { return }
+        let ms = avg.doubleValue(for: .secondUnit(with: .milli))
+
+        await MainActor.run {
+            context.insert(HRVEntry(ms: ms, date: Date()))
+            try? context.save()
+        }
     }
-    
-    func syncWeeklySummary(context: ModelContext){
+
+    // MARK: - Sync
+
+    func syncWeeklySummary(context: ModelContext) {
         let calendar = Calendar.current
         guard let sevenDaysAgo = calendar.date(byAdding: .day, value: -7, to: Date()) else { return }
-        
+
+        // Clear old entries before re-fetching
         try? context.delete(model: StepEntry.self)
-            try? context.delete(model: HeartRateEntry.self)
-            try? context.delete(model: RestingHeartRateEntry.self)
-            try? context.delete(model: HRVEntry.self)
-        
-        fetchSteps(since: sevenDaysAgo, context: context)
-        fetchHeartRate(since: sevenDaysAgo, context: context)
-        fetchHeartRestingRate(since: sevenDaysAgo, context: context)
-        fetchHeartRateVar(since: sevenDaysAgo, context: context)
+        try? context.delete(model: HeartRateEntry.self)
+        try? context.delete(model: RestingHeartRateEntry.self)
+        try? context.delete(model: HRVEntry.self)
+
+        Task {
+            await fetchSteps(since: sevenDaysAgo, context: context)
+            await fetchHeartRate(since: sevenDaysAgo, context: context)
+            await fetchHeartRestingRate(since: sevenDaysAgo, context: context)
+            await fetchHeartRateVar(since: sevenDaysAgo, context: context)
+        }
     }
-    
+
+    // MARK: - Background Observation
+
     func startObserving(context: ModelContext) {
-        let types: [HKQuantityTypeIdentifier] = [.stepCount, .heartRate, .restingHeartRate, .heartRateVariabilitySDNN]
-        
-        for identifier in types {
+        let identifiers: [HKQuantityTypeIdentifier] = [
+            .stepCount, .heartRate, .restingHeartRate, .heartRateVariabilitySDNN
+        ]
+
+        for identifier in identifiers {
             let type = HKObjectType.quantityType(forIdentifier: identifier)!
+
             let query = HKObserverQuery(sampleType: type, predicate: nil) { [weak self] _, _, error in
                 guard error == nil else { return }
                 self?.syncWeeklySummary(context: context)
             }
             healthStore.execute(query)
-            
-            // enables background delivery even when app is closed
-            healthStore.enableBackgroundDelivery(for: type, frequency: .hourly) { _, _ in }
+
+            // enableBackgroundDelivery has no async API — Task wrapper keeps it off the main thread
+            Task {
+                await withCheckedContinuation { continuation in
+                    self.healthStore.enableBackgroundDelivery(for: type, frequency: .hourly) { _, _ in
+                        continuation.resume()
+                    }
+                }
+            }
         }
     }
-//    
-//    extension Notification.Name {
-//        static let healthKitAccessRevoked = Notification.Name("healthKitAccessRevoked")
-//    }
 }

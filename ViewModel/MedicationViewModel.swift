@@ -2,116 +2,101 @@
 //  MedicationViewModel.swift
 //  PulseCor
 //
-//
-
 import Foundation
+import SwiftData
 import Combine
 
+@MainActor
 class MedicationViewModel: ObservableObject {
+
     @Published var medications: [Medication] = []
     @Published var errorMessage: String?
-    
-    private let databaseService: DatabaseService
+
+    private var modelContext: ModelContext?
     private let notificationService: NotificationService
-    
-    //notifications needed alongside database since reminders are tied to medications
-    init(databaseService: DatabaseService = .shared, notificationService: NotificationService = .shared) {
-        self.databaseService = databaseService
-        self.notificationService = notificationService
+
+    init() {
+        self.notificationService = NotificationService.shared
+    }
+
+    func setContext(_ context: ModelContext) {
+        self.modelContext = context
         loadMedications()
     }
-    
-    // fetches all active medications from the database and updates the UI
+
     func loadMedications() {
-        do {
-            medications = try databaseService.getMedications()
-        } catch {
-            errorMessage = "Failed to load medications"
-            print("Error loading medications: \(error)")
-        }
+        guard let modelContext else { return }
+        let descriptor = FetchDescriptor<Medication>(predicate: #Predicate { $0.isActive == true })
+        medications = (try? modelContext.fetch(descriptor)) ?? []
     }
-    
+
     func addMedication(name: String, dosage: String, frequency: String, reminderTimes: [String]) {
-        let medication = Medication(
-            userId: 1,
-            name: name,
-            dosage: dosage,
-            frequency: frequency,
-            reminderTimes: reminderTimes,
-            isActive: true
-        )
-        
+        guard let modelContext else { return }
+        let medication = Medication(userId: 1, name: name, dosage: dosage, frequency: frequency, reminderTimes: reminderTimes)
+        modelContext.insert(medication)
         do {
-            let medicationId = try databaseService.createMedication(medication: medication)
-            
-            // only schedule notifications if the user actually set reminder times
-            if let times = medication.reminderTimes {
-                notificationService.scheduleMedicationReminders(
-                    medicationId: Int(medicationId),
-                    medicationName: name,
-                    dosage: dosage,
-                    times: times
-                )
-            }
-            
+            try modelContext.save()
+            notificationService.scheduleMedicationReminders(
+                medicationId: medication.localId.uuidString,
+                medicationName: name, dosage: dosage, times: reminderTimes
+            )
             loadMedications()
         } catch {
             errorMessage = "Failed to add medication"
-            print("Error adding medication: \(error)")
+            print("MedicationViewModel addMedication error: \(error)")
         }
     }
-    
-    func deleteMedication(medicationId: Int) {
+
+    func deleteMedication(_ medication: Medication) {
+        guard let modelContext else { return }
+        notificationService.cancelMedicationNotifications(medicationId: medication.localId.uuidString)
+        medication.isActive = false
         do {
-            try databaseService.deleteMedication(medicationId: medicationId)
-            notificationService.cancelMedicationNotifications(medicationId: medicationId)
+            try modelContext.save()
             loadMedications()
         } catch {
             errorMessage = "Failed to delete medication"
-            print("Error deleting medication: \(error)")
+            print("MedicationViewModel deleteMedication error: \(error)")
         }
     }
-    
-    // logs whether the user took, skipped, or missed a medication at a scheduled time
-    func logMedicationAction(medicationId: Int, status: MedicationStatus, scheduledTime: String) {
+
+    func updateMedication(_ medication: Medication, name: String, dosage: String, frequency: String, reminderTimes: [String]) {
+        guard let modelContext else { return }
+        notificationService.cancelMedicationNotifications(medicationId: medication.localId.uuidString)
+        medication.name = name
+        medication.dosage = dosage
+        medication.frequency = frequency
+        medication.reminderTimes = reminderTimes
         do {
-            try databaseService.logMedicationStatus(
-                medicationId: medicationId,
-                status: status,
-                scheduledTime: scheduledTime
-            )
-        } catch {
-            errorMessage = "Failed to log medication status"
-            print("Error logging medication: \(error)")
-        }
-    }
-    
-    func updateMedication(medicationId: Int, name: String, dosage: String, frequency: String, reminderTimes: [String]) {
-        do {
-            notificationService.cancelMedicationNotifications(medicationId: medicationId) //cancels old reminders before applying changes
-            
-            try databaseService.updateMedication(
-                medicationId: medicationId,
-                name: name,
-                dosage: dosage,
-                frequency: frequency,
-                reminderTimes: reminderTimes
-            )
-            
-            // reschedules with the updated times if any were set
+            try modelContext.save()
             if !reminderTimes.isEmpty {
                 notificationService.scheduleMedicationReminders(
-                    medicationId: medicationId,
-                    medicationName: name,
-                    dosage: dosage,
-                    times: reminderTimes
+                    medicationId: medication.localId.uuidString,
+                    medicationName: name, dosage: dosage, times: reminderTimes
                 )
             }
-            
             loadMedications()
         } catch {
             errorMessage = "Failed to update medication"
-            print("Error updating medication: \(error)")
+            print("MedicationViewModel updateMedication error: \(error)")
+        }
+    }
+
+    func logMedicationAction(medication: Medication, status: MedicationStatus, scheduledTime: String) {
+        guard let modelContext else { return }
+        let log = MedicationLog(
+            medicationLocalId: medication.localId,
+            medicationName: medication.name,
+            medicationDosage: medication.dosage,
+            status: status,
+            scheduledTime: scheduledTime
+        )
+        modelContext.insert(log)
+        do {
+            try modelContext.save()
+        } catch {
+            errorMessage = "Failed to log medication status"
+            print("MedicationViewModel logMedicationAction error: \(error)")
         }
     }
 }

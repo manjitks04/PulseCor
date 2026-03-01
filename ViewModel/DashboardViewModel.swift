@@ -2,90 +2,73 @@
 //  DashboardViewModel.swift
 //  PulseCor
 //
-//
 import Foundation
+import SwiftData
 import Combine
 
+@MainActor
 class DashboardViewModel: ObservableObject {
-    
+
     @Published var currentStreak: Int = 0
     @Published var longestStreak: Int = 0
     @Published var lastCheckInDate: Date?
     @Published var recentCheckIns: [DailyCheckIn] = []
     @Published var weeklyCheckInCount: Int = 0
-    
-    @Published var averageSleepHours: Double = 0
-    @Published var averageWaterGlasses: Double = 0
-    @Published var errorMessage: String?
-    
     @Published var featuredArticles: [Article] = []
-    
-    @Published var pendingMedicationAlert: (id: Int, name: String, dosage: String, time: String)? = nil
-    
-    private let databaseService: DatabaseService
-    
-    //Initialisation
-    init(databaseService: DatabaseService = .shared) {
-        self.databaseService = databaseService
+    @Published var errorMessage: String?
+
+    private var modelContext: ModelContext?
+
+    init() {}
+
+    func setContext(_ context: ModelContext) {
+        self.modelContext = context
         loadDashboardData()
     }
-    
-    //loads data
+
     func loadDashboardData() {
-        do {
-            //load user streak data
-            if let user = try databaseService.getUser() {
-                currentStreak = user.currentStreak
-                longestStreak = user.longestStreak
-                lastCheckInDate = user.lastCheckInDate
-            }
-            
-            weeklyCheckInCount = try databaseService.getWeeklyCount(userId: 1)
-            
-            //recent check-ins for the chart/averages
-            recentCheckIns = try databaseService.getRecentCheckIns(limit: 7)
-            
-            // Load 3 random articles for dashboard
-            featuredArticles = try databaseService.getRandomArticles(
-                category: nil,
-                type: .helpfulArticle,
-                limit: 3
-            )
-            
-//            calculateAverages()
-            
-        } catch let error as PulseCorError {
-            self.errorMessage = error.errorDescription
-        } catch {
-            print("Unexpected Dashboard Error: \(error)")
-        }
+        loadUserData()
+        loadRecentCheckIns()
+        loadWeeklyCount()
+        loadFeaturedArticles()
     }
-    
-    //calc Logic
-//    private func calculateAverages() {
-//        guard !recentCheckIns.isEmpty else {
-//            averageSleepHours = 0
-//            averageWaterGlasses = 0
-//            return
-//        }
-//        
-//        // -avg water
-//        let waterValues = recentCheckIns.compactMap { checkIn -> Double? in
-//            guard let intake = checkIn.waterGlasses else { return nil }
-//            
-//            switch intake {
-//            case .veryHigh: return 8.0
-//            case .high:     return 5.5
-//            case .moderate: return 3.5
-//            case .low:      return 1.0
-//            }
-//        }
-//        
-//        averageWaterGlasses = waterValues.isEmpty ? 0 : waterValues.reduce(0, +) / Double(waterValues.count)
-//        
-//        func hasCheckedInToday() -> Bool {
-//            guard let lastCheckIn = lastCheckInDate else { return false }
-//            return Calendar.current.isDateInToday(lastCheckIn)
-//        }
-//    }
+
+    private func loadUserData() {
+        guard let modelContext else { return }
+        var descriptor = FetchDescriptor<User>(predicate: #Predicate { $0.id == 1 })
+        descriptor.fetchLimit = 1
+        guard let user = try? modelContext.fetch(descriptor).first else { return }
+        currentStreak = user.currentStreak
+        longestStreak = user.longestStreak
+        lastCheckInDate = user.lastCheckInDate
+    }
+
+    private func loadRecentCheckIns() {
+        guard let modelContext else { return }
+        var descriptor = FetchDescriptor<DailyCheckIn>(
+            predicate: #Predicate { $0.isComplete == true },
+            sortBy: [SortDescriptor(\.date, order: .reverse)]
+        )
+        descriptor.fetchLimit = 7
+        recentCheckIns = (try? modelContext.fetch(descriptor)) ?? []
+    }
+
+    private func loadWeeklyCount() {
+        guard let modelContext else { return }
+        let calendar = Calendar.current
+        let now = Date()
+        guard let weekStart = calendar.dateInterval(of: .weekOfYear, for: now)?.start else { return }
+        let start = weekStart
+        let end = now
+        let descriptor = FetchDescriptor<DailyCheckIn>(
+            predicate: #Predicate { $0.isComplete == true && $0.date >= start && $0.date <= end }
+        )
+        weeklyCheckInCount = (try? modelContext.fetchCount(descriptor)) ?? 0
+    }
+
+    private func loadFeaturedArticles() {
+        guard let modelContext else { return }
+        let all = (try? modelContext.fetch(FetchDescriptor<Article>())) ?? []
+        featuredArticles = Array(all.filter { $0.articleType == .helpfulArticle }.shuffled().prefix(3))
+    }
 }

@@ -1,31 +1,32 @@
-//
-//  ChatMessage.swift
-//  PulseCor
-//
-//
 import Foundation
+import SwiftData
 
-struct ChatMessage: Codable, Identifiable {
-    let id: UUID
-    let sessionId: String  // links messages to a conversation session
-    let sender: MessageSender
-    let content: String
-    let timestamp: Date
-    let messageType: MessageType
-    var quickReplies: [String]?  // quick reply buttons
-   
-    
-    // initaliser
-    init(id: UUID = UUID(), sessionId: String, sender: MessageSender, content: String, timestamp: Date = Date(), messageType: MessageType = .text, quickReplies: [String]? = nil) {
-        self.id = id
+@Model
+class ChatMessage {
+    var sessionId: String
+    var sender: MessageSender
+    var content: String
+    var timestamp: Date
+    var messageType: MessageType
+    var quickReplies: [String] // non-optional — SwiftData handles [String] natively, defaults to []
+
+    init(
+        sessionId: String,
+        sender: MessageSender,
+        content: String,
+        timestamp: Date = Date(),
+        messageType: MessageType = .text,
+        quickReplies: [String]? = nil
+    ) {
         self.sessionId = sessionId
         self.sender = sender
         self.content = content
         self.timestamp = timestamp
         self.messageType = messageType
-        self.quickReplies = quickReplies
+        self.quickReplies = quickReplies ?? []
     }
 }
+
 
 enum MessageSender: String, Codable {
     case cora = "Cora"
@@ -35,5 +36,5 @@ enum MessageSender: String, Codable {
 enum MessageType: String, Codable {
     case text = "text"
     case quickReply = "quick_reply"
-    case systemInfo = "system_info" //gentle nudges
+    case systemInfo = "system_info" // gentle nudges
 }

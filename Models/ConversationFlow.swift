@@ -2,32 +2,30 @@
 //  ConversationFlow.swift
 //  PulseCor
 //
-//
 import Foundation
+import SwiftData
 
-struct ConversationFlow: Codable {
-    let id: Int?
-    let sessionId: String
-    let userId: Int
-    let flowType: FlowType
+@Model
+class ConversationFlow {
+    @Attribute(.unique) var sessionId: String
+    var userId: Int
+    var flowType: FlowType
     var currentStep: ConversationStep
     var isComplete: Bool
-    let startedAt: Date
+    var startedAt: Date
     var completedAt: Date?
-    
-    var tempData: [String: String] //dict mapping key to val
-    
-    // Initialiser
-    init(id: Int? = nil,
-         sessionId: String = UUID().uuidString,
-         userId: Int = 1,
-         flowType: FlowType,
-         currentStep: ConversationStep,
-         isComplete: Bool = false,
-         startedAt: Date = Date(),
-         completedAt: Date? = nil,
-         tempData: [String: String] = [:]) {
-        self.id = id
+    var tempData: [String: String]
+
+    init(
+        sessionId: String = UUID().uuidString,
+        userId: Int = 1,
+        flowType: FlowType,
+        currentStep: ConversationStep,
+        isComplete: Bool = false,
+        startedAt: Date = Date(),
+        completedAt: Date? = nil,
+        tempData: [String: String] = [:]
+    ) {
         self.sessionId = sessionId
         self.userId = userId
         self.flowType = flowType
@@ -48,7 +46,6 @@ enum FlowType: String, Codable, CaseIterable {
 
 enum ConversationStep: String, Codable, CaseIterable {
     case welcome, getName, healthKitAuth
-    
     case greeting
     case askSleepQuality
     case askSleepHours
@@ -58,9 +55,6 @@ enum ConversationStep: String, Codable, CaseIterable {
     case askMood
     case askActivity
     case askSymptoms
-    
     case medReminder, medActionTaken
-    
     case completion
 }
-

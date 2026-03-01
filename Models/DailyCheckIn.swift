@@ -2,13 +2,13 @@
 //  DailyCheckIn.swift
 //  PulseCor
 //
-//
 import Foundation
+import SwiftData
 
-struct DailyCheckIn: Codable {
-    let id: Int?
-    let userId: Int
-    let date: Date
+@Model
+class DailyCheckIn {
+    var userId: Int
+    var date: Date
     var sleepQuality: SleepQuality?
     var sleepHours: SleepHours?
     var waterGlasses: WaterIntake?
@@ -16,29 +16,38 @@ struct DailyCheckIn: Codable {
     var energyLevel: EnergyLevel?
     var activityLevel: ActivityLevel?
     var physicalSymptoms: String?
-  
-    let createdAt: Date
+    var createdAt: Date
     var completedAt: Date?
     var isComplete: Bool
-    
-    // intialiser for new check-ins
-    init(id: Int? = nil, userId: Int = 1, date: Date = Date(), sleepQuality: SleepQuality? = nil, sleepHours: SleepHours? = nil, waterGlasses: WaterIntake? = nil, stressLevel: StressLevel? = nil, energyLevel: EnergyLevel? = nil, activityLevel: ActivityLevel? = nil, physicalSymptoms: String? = nil, createdAt: Date = Date(), completedAt: Date? = nil, isComplete: Bool = false)
-    {
-            self.id = id
-            self.userId = userId
-            self.date = date
-            self.sleepQuality = sleepQuality
-            self.sleepHours = sleepHours
-            self.waterGlasses = waterGlasses
-            self.stressLevel = stressLevel
-            self.energyLevel = energyLevel
-            self.activityLevel = activityLevel
-            self.physicalSymptoms = physicalSymptoms
-            self.createdAt = createdAt
-            self.completedAt = completedAt
-            self.isComplete = isComplete
-        }
+
+    init(
+        userId: Int = 1,
+        date: Date = Date(),
+        sleepQuality: SleepQuality? = nil,
+        sleepHours: SleepHours? = nil,
+        waterGlasses: WaterIntake? = nil,
+        stressLevel: StressLevel? = nil,
+        energyLevel: EnergyLevel? = nil,
+        activityLevel: ActivityLevel? = nil,
+        physicalSymptoms: String? = nil,
+        createdAt: Date = Date(),
+        completedAt: Date? = nil,
+        isComplete: Bool = false
+    ) {
+        self.userId = userId
+        self.date = date
+        self.sleepQuality = sleepQuality
+        self.sleepHours = sleepHours
+        self.waterGlasses = waterGlasses
+        self.stressLevel = stressLevel
+        self.energyLevel = energyLevel
+        self.activityLevel = activityLevel
+        self.physicalSymptoms = physicalSymptoms
+        self.createdAt = createdAt
+        self.completedAt = completedAt
+        self.isComplete = isComplete
     }
+}
 
 enum WaterIntake: String, Codable, CaseIterable {
     case veryHigh = "7+ glasses"
@@ -78,4 +87,3 @@ enum ActivityLevel: String, Codable, CaseIterable {
     case low = "Low"
     case none = "None"
 }
-
