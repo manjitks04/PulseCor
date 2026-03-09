@@ -6,8 +6,14 @@ import Foundation
 import SwiftData
 
 struct ArticleSeeder {
-
+    
     static func seedIfNeeded(in modelContext: ModelContext) {
+        let existing = (try? modelContext.fetch(FetchDescriptor<Article>())) ?? []
+        if existing.contains(where: { $0.content == "Content not available." }) {
+            UserDefaults.standard.removeObject(forKey: "hasSeededArticles")
+            try? modelContext.delete(model: Article.self)
+        }
+
         guard !UserDefaults.standard.bool(forKey: "hasSeededArticles") else { return }
 
         let articles = buildArticles()
@@ -99,12 +105,12 @@ struct ArticleSeeder {
             )
         ]
     }
-    
+
     private static func loadContent(_ filename: String) -> String {
-        guard let path = Bundle.main.path(forResource: filename, ofType: "txt", inDirectory: "Articles"),
+        guard let path = Bundle.main.path(forResource: filename, ofType: "txt"),
               let content = try? String(contentsOfFile: path, encoding: .utf8)
         else {
-            print("ArticleSeeder: could not find \(filename).txt in articles folder")
+            print("ArticleSeeder: could not find \(filename).txt")
             return "Content not available."
         }
         return content
