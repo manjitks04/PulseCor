@@ -11,7 +11,7 @@ enum DashboardSheet: Identifiable {
 
     var id: String {
         switch self {
-        case .medication(let med): return "medication-\(med.id)"
+        case .medication(let med): return "medication-\(med.id)-\(med.time)"
         case .calendar: return "calendar"
         }
     }
@@ -151,20 +151,21 @@ struct DashboardView: View {
             .task {
                 viewModel.setContext(modelContext)
                 if users.isEmpty {
-                    modelContext.insert(User(name: "Test"))
+//                    modelContext.insert(User(name: "Test"))
+                    let profilePics = (1...10).map { "PFP \($0)" }
+                    modelContext.insert(User(name: "Test", profilePic: profilePics.randomElement() ?? "PFP 1"))
                 }
             }
-            .onAppear {
-                if let med = navManager.pendingMedication {
-                    activeSheet = .medication(med)
+            //Fires after the app is fully launched
+            .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
+                navManager.restorePendingMedicationIfNeeded()
+                showMedicationIfPending()
+            }
+            .onReceive(navManager.$pendingMedication) { med in
+                if med != nil {
+                    showMedicationIfPending()
                 }
             }
-            .onChange(of: navManager.pendingMedication) { _, newValue in
-                if let med = newValue {
-                    activeSheet = .medication(med)
-                }
-            }
-            // Single sheet handles both cases — no conflicts, no race conditions
             .sheet(item: $activeSheet) { sheet in
                 switch sheet {
                 case .medication(let med):
@@ -182,10 +183,7 @@ struct DashboardView: View {
                             )
                             logMedication(med: med, status: .snoozed)
                         },
-                        onDismiss: {
-                            navManager.pendingMedication = nil
-                            activeSheet = nil
-                        }
+                        onDismiss: { dismissMedicationSheet() }
                     )
                     .presentationDetents([.height(300)])
                     .presentationDragIndicator(.hidden)
@@ -199,6 +197,21 @@ struct DashboardView: View {
         }
     }
 
+    private func showMedicationIfPending() {
+        guard let med = navManager.pendingMedication else { return }
+        // If this exact sheet is already showing, don't re-trigger
+        if case .medication(let current) = activeSheet, current == med { return }
+        Task {
+            try? await Task.sleep(for: .milliseconds(800))
+            activeSheet = .medication(med)
+        }
+    }
+
+    private func dismissMedicationSheet() {
+        navManager.pendingMedication = nil
+        activeSheet = nil
+    }
+
     private func logMedication(med: PendingMedication, status: MedicationStatus) {
         let log = MedicationLog(
             medicationLocalId: UUID(uuidString: med.id) ?? UUID(),
@@ -209,8 +222,7 @@ struct DashboardView: View {
         )
         modelContext.insert(log)
         try? modelContext.save()
-        navManager.pendingMedication = nil
-        activeSheet = nil
+        dismissMedicationSheet()
     }
 
     @ViewBuilder

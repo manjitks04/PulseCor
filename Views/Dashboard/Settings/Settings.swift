@@ -14,8 +14,11 @@ struct SettingsView: View {
 
     @State private var editedName: String = ""
     @State private var isEditingName: Bool = false
-    @State private var healthSyncEnabled: Bool = false
     @ObservedObject private var healthManager = HealthKitManager.shared
+
+    // Backed by AppStorage so the toggle survives app restarts.
+    // On first launch it defaults to false; after auth is granted it flips to true.
+    @AppStorage("healthSyncEnabled") private var healthSyncEnabled: Bool = false
 
     @AppStorage("isDarkMode") private var isDarkMode: Bool = false
     @AppStorage("dailyCheckInEnabled") private var dailyCheckInEnabled: Bool = true
@@ -25,15 +28,11 @@ struct SettingsView: View {
     @AppStorage("weeklyReflectionHour") private var weeklyReflectionHour: Int = 18
     @AppStorage("weeklyReflectionMinute") private var weeklyReflectionMinute: Int = 0
 
-    @State private var showingHealthError: Bool = false
-    @State private var healthErrorMessage: String = ""
-
     @StateObject private var medicationViewModel = MedicationViewModel()
     @State private var showingAddMedication = false
     @State private var medicationToEdit: Medication?
 
     var currentUser: User? { users.first }
-
 
     var body: some View {
         NavigationStack {
@@ -41,10 +40,11 @@ struct SettingsView: View {
                 VStack(spacing: 24) {
 
                     HStack(spacing: 16) {
-                        Circle()
-                            .fill(Color.gray.opacity(0.3))
+                        Image(currentUser?.profilePic ?? "PFP 1")
+                            .resizable()
+                            .scaledToFill()
                             .frame(width: 60, height: 60)
-                            .overlay(Text("profile").font(.caption).foregroundColor(.secondary))
+                            .clipShape(Circle())
 
                         VStack(alignment: .leading, spacing: 4) {
                             if isEditingName {
@@ -130,31 +130,65 @@ struct SettingsView: View {
                         Text("Health Data")
                             .font(.title).fontWeight(.semibold).foregroundColor(Color("TextBlue"))
 
-                        HStack {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("Apple Health Sync").font(.body).foregroundColor(Color("MainText"))
+                        VStack(spacing: 0) {
+                            HStack {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("Apple Health Sync")
+                                        .font(.body).foregroundColor(Color("MainText"))
 
-                                if HealthKitManager.shared.isAuthorized {
-                                    Text("Connected — reading from Apple Health")
-                                        .font(.caption).foregroundColor(Color("AccentPink"))
-                                } else {
-                                    HStack(spacing: 4) {
-                                        Image(systemName: "info.circle").font(.caption).foregroundColor(.pink.opacity(0.7))
-                                        Text("To disconnect, open the Health app → your profile → Apps & Devices")
-                                            .font(.caption).foregroundColor(Color("AccentCoral"))
+                                    if healthSyncEnabled {
+                                        Text("Connected — reading from Apple Health")
+                                            .font(.caption).foregroundColor(Color("AccentPink"))
+                                    } else {
+                                        Text("Health metrics will show — on the My Health tab")
+                                            .font(.caption).foregroundColor(.secondary)
                                     }
                                 }
+                                Spacer()
+                                Toggle("", isOn: $healthSyncEnabled)
+                                    .labelsHidden()
+                                    .tint(Color("AccentPink"))
+                                    .onChange(of: healthSyncEnabled) { _, newValue in
+                                        if newValue {
+                                            // Request auth and sync
+                                            Task {
+                                                let (success, _) = await HealthKitService.shared.requestAuth()
+                                                if success {
+                                                    HealthKitService.shared.syncWeeklySummary(context: modelContext)
+                                                } else {
+                                                    // Auth failed or denied — flip toggle back off
+                                                    healthSyncEnabled = false
+                                                }
+                                            }
+                                        } else {
+                                            // Clear local cached health data so My Health shows --
+                                            try? modelContext.delete(model: StepEntry.self)
+                                            try? modelContext.delete(model: HeartRateEntry.self)
+                                            try? modelContext.delete(model: RestingHeartRateEntry.self)
+                                            try? modelContext.delete(model: HRVEntry.self)
+                                        }
+                                    }
                             }
-                            Spacer()
-                            Toggle("", isOn: $healthSyncEnabled)
-                                .labelsHidden().tint(Color("AccentPink"))
-                                .onChange(of: healthSyncEnabled) { _, newValue in
-                                    if newValue {
-                                        Task { await requestHealthKitAuth() }
-                                    }
+                            .padding()
+
+                            // Disclaimer only shown when toggled off — explains that
+                            // HealthKit read access must be revoked separately in the Health app
+                            if !healthSyncEnabled {
+                                Divider().padding(.horizontal)
+
+                                HStack(alignment: .top, spacing: 8) {
+                                    Image(systemName: "info.circle")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                    Text("To fully revoke data access, go to the Health app → your profile → Apps & Devices → PulseCor.")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
                                 }
+                                .padding()
+                            }
                         }
-                        .padding().background(Color("CardBG")).cornerRadius(12)
+                        .background(Color("CardBG"))
+                        .cornerRadius(12)
                         .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.gray.opacity(0.2), lineWidth: 1))
                     }
                     .padding()
@@ -234,7 +268,6 @@ struct SettingsView: View {
                                 .contentShape(Rectangle())
                                 .contextMenu {
                                     Button(role: .destructive) {
-                                        // New signature takes the Medication object directly
                                         medicationViewModel.deleteMedication(medication)
                                     } label: {
                                         Label("Delete", systemImage: "trash")
@@ -249,7 +282,12 @@ struct SettingsView: View {
             .background(Color("MainBG"))
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.large)
-            .task { medicationViewModel.setContext(modelContext) }
+            .task {
+                medicationViewModel.setContext(modelContext)
+                if healthSyncEnabled {
+                    HealthKitService.shared.syncWeeklySummary(context: modelContext)
+                }
+            }
         }
         .background(Color("MainBG"))
         .preferredColorScheme(isDarkMode ? .dark : .light)
@@ -270,17 +308,6 @@ struct SettingsView: View {
         user.name = editedName
         try? modelContext.save()
         isEditingName = false
-    }
-
-    private func requestHealthKitAuth() async {
-        let (success, error) = await HealthKitService.shared.requestAuth()
-        if !success {
-            let pulseError = PulseCorError.healthKitAuthFailed(
-                error?.localizedDescription ?? "Unknown error"
-            )
-            healthErrorMessage = pulseError.errorDescription ?? "Failed to authorize HealthKit"
-            showingHealthError = true
-        }
     }
 
     private func scheduleDailyCheckInNotification() {
