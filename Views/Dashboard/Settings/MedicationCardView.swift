@@ -31,11 +31,22 @@ struct MedicationCard: View {
                     .foregroundColor(Color("TextBlue"))
 
                 if !medication.reminderTimes.isEmpty {
-                    HStack(spacing: 4) {
-                        Image(systemName: "clock").font(.caption)
-                        Text(formatTime(medication.reminderTimes.first ?? ""))
-                            .font(.subheadline)
-                            .foregroundColor(Color("MainText"))
+                    // Shows all reminder times as a wrapping row of pills
+                    FlowLayout(spacing: 6) {
+                        ForEach(medication.reminderTimes, id: \.self) { time in
+                            HStack(spacing: 4) {
+                                Image(systemName: "clock")
+                                    .font(.caption2)
+                                Text(formatTime(time))
+                                    .font(.caption)
+                                    .fontWeight(.medium)
+                            }
+                            .foregroundColor(Color("AccentCoral"))
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(Color("AccentCoral").opacity(0.1))
+                            .cornerRadius(12)
+                        }
                     }
                 }
             }
@@ -60,5 +71,46 @@ struct MedicationCard: View {
               let hour = Int(components[0]),
               let minute = Int(components[1]) else { return time }
         return String(format: "%02d:%02d", hour, minute)
+    }
+}
+
+private struct FlowLayout: Layout {
+    var spacing: CGFloat = 8
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let maxWidth = proposal.width ?? .infinity
+        var x: CGFloat = 0
+        var y: CGFloat = 0
+        var rowHeight: CGFloat = 0
+
+        for view in subviews {
+            let size = view.sizeThatFits(.unspecified)
+            if x + size.width > maxWidth, x > 0 {
+                y += rowHeight + spacing
+                x = 0
+                rowHeight = 0
+            }
+            x += size.width + spacing
+            rowHeight = max(rowHeight, size.height)
+        }
+        return CGSize(width: maxWidth, height: y + rowHeight)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        var x = bounds.minX
+        var y = bounds.minY
+        var rowHeight: CGFloat = 0
+
+        for view in subviews {
+            let size = view.sizeThatFits(.unspecified)
+            if x + size.width > bounds.maxX, x > bounds.minX {
+                y += rowHeight + spacing
+                x = bounds.minX
+                rowHeight = 0
+            }
+            view.place(at: CGPoint(x: x, y: y), proposal: ProposedViewSize(size))
+            x += size.width + spacing
+            rowHeight = max(rowHeight, size.height)
+        }
     }
 }

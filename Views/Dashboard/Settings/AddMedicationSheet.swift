@@ -13,9 +13,8 @@ struct AddMedicationSheet: View {
     @State private var medicationName: String
     @State private var dosage: String
     @State private var frequency: String
-    @State private var hour: Int
-    @State private var minute: Int
     @State private var enableReminder: Bool
+    @State private var reminderTimes: [(hour: Int, minute: Int)]
 
     let frequencies = ["Before Breakfast", "After Breakfast", "Before Lunch", "After Lunch", "Before Dinner", "After Dinner", "Before Bed"]
 
@@ -27,31 +26,20 @@ struct AddMedicationSheet: View {
             _medicationName = State(initialValue: medication.name)
             _dosage = State(initialValue: medication.dosage)
             _frequency = State(initialValue: medication.frequency)
-            // reminderTimes is now [String] not [String]?
             _enableReminder = State(initialValue: !medication.reminderTimes.isEmpty)
 
-            if let timeString = medication.reminderTimes.first {
-                let components = timeString.split(separator: ":")
-                if components.count == 2,
-                   let h = Int(components[0]),
-                   let m = Int(components[1]) {
-                    _hour = State(initialValue: h)
-                    _minute = State(initialValue: m)
-                } else {
-                    _hour = State(initialValue: 9)
-                    _minute = State(initialValue: 0)
-                }
-            } else {
-                _hour = State(initialValue: 9)
-                _minute = State(initialValue: 0)
+            let parsed: [(hour: Int, minute: Int)] = medication.reminderTimes.compactMap { timeString in
+                let parts = timeString.split(separator: ":")
+                guard parts.count == 2, let h = Int(parts[0]), let m = Int(parts[1]) else { return nil }
+                return (hour: h, minute: m)
             }
+            _reminderTimes = State(initialValue: parsed.isEmpty ? [(hour: 9, minute: 0)] : parsed)
         } else {
             _medicationName = State(initialValue: "")
             _dosage = State(initialValue: "")
             _frequency = State(initialValue: "After Breakfast")
-            _hour = State(initialValue: 9)
-            _minute = State(initialValue: 0)
             _enableReminder = State(initialValue: true)
+            _reminderTimes = State(initialValue: [(hour: 9, minute: 0)])
         }
     }
 
@@ -69,11 +57,44 @@ struct AddMedicationSheet: View {
                     }
                 }
 
-                Section(header: Text("Reminder Time ⏰")) {
-                    Toggle("Enable Reminder", isOn: $enableReminder)
+                Section(header: Text("Reminder Times ⏰")) {
+                    Toggle("Enable Reminders", isOn: $enableReminder)
 
                     if enableReminder {
-                        MedTimePickerRow(hour: $hour, minute: $minute)
+                        ForEach(reminderTimes.indices, id: \.self) { index in
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("Reminder \(index + 1)")
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
+
+                                MedTimePickerRow(
+                                    hour: Binding(
+                                        get: { reminderTimes[index].hour },
+                                        set: { reminderTimes[index].hour = $0 }
+                                    ),
+                                    minute: Binding(
+                                        get: { reminderTimes[index].minute },
+                                        set: { reminderTimes[index].minute = $0 }
+                                    )
+                                )
+                            }
+                            .padding(.vertical, 4)
+                        }
+                        // Swipe left on any row to delete it.
+                        // Disabled on the last remaining row so there's always one time.
+                        .onDelete { indexSet in
+                            guard reminderTimes.count > 1 else { return }
+                            reminderTimes.remove(atOffsets: indexSet)
+                        }
+
+                        Button(action: {
+                            let last = reminderTimes.last ?? (hour: 9, minute: 0)
+                            reminderTimes.append((hour: (last.hour + 1) % 24, minute: last.minute))
+                        }) {
+                            Label("Add Another Time", systemImage: "plus.circle.fill")
+                                .foregroundColor(Color("AccentCoral"))
+                        }
+                        .buttonStyle(.borderless)
                     }
                 }
             }
@@ -92,11 +113,11 @@ struct AddMedicationSheet: View {
     }
 
     private func saveMedication() {
-        let timeString = String(format: "%02d:%02d", hour, minute)
-        let times = enableReminder ? [timeString] : []
+        let times: [String] = enableReminder
+            ? reminderTimes.map { String(format: "%02d:%02d", $0.hour, $0.minute) }
+            : []
 
         if let existing = medicationToEdit {
-            // New signature takes the Medication object directly
             viewModel.updateMedication(
                 existing,
                 name: medicationName,
@@ -164,15 +185,3 @@ private struct MedTimePickerRow: View {
         .frame(maxWidth: .infinity)
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
