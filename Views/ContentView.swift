@@ -41,7 +41,7 @@ struct ContentView: View {
         .task {
             healthManager.setup(context: modelContext)
             _ = await NotificationService.shared.requestAuthorization()
-
+            
             if let pending = navManager.pendingTab {
                 navManager.selectedTab = pending
                 navManager.pendingTab = nil
@@ -53,58 +53,12 @@ struct ContentView: View {
                 navManager.pendingTab = nil
             }
         }
-        .onChange(of: navManager.pendingMedication) { _, newValue in
-            if newValue != nil {
-                navManager.selectedTab = .home
-            }
-        }
-        // Medication sheet lives here — always in the hierarchy, never affected by tab switches
-        .sheet(item: $navManager.pendingMedication) { _ in
-            MedicationAlertSheet(
-                medicationName: navManager.pendingMedication?.name ?? "",
-                dosage: navManager.pendingMedication?.dosage ?? "",
-                scheduledTime: navManager.pendingMedication?.time ?? "",
-                onTaken: { logPendingMedication(status: .taken) },
-                onSkip: { logPendingMedication(status: .skipped) },
-                onSnooze: {
-                    if let med = navManager.pendingMedication {
-                        NotificationService.shared.snoozeMedicationReminder(
-                            medicationId: med.id,
-                            medicationName: med.name,
-                            dosage: med.dosage
-                        )
-                        logPendingMedication(status: .snoozed)
-                    }
-                },
-                onDismiss: {
-                    navManager.pendingMedication = nil
-                }
-            )
-            .presentationDetents([.height(300)])
-            .presentationDragIndicator(.hidden)
-            .interactiveDismissDisabled(true)
-        }
         .alert("Health Access Disconnected", isPresented: $healthManager.accessRevoked) {
             Button("Open Settings") { healthManager.openSettings() }
             Button("Cancel", role: .cancel) { healthManager.accessRevoked = false }
         } message: {
             Text("PulseCor no longer has access to your Health data. To reconnect, please re-enable access in your iPhone Settings.")
         }
-    }
-
-    private func logPendingMedication(status: MedicationStatus) {
-        if let med = navManager.pendingMedication {
-            let log = MedicationLog(
-                medicationLocalId: UUID(uuidString: med.id) ?? UUID(),
-                medicationName: med.name,
-                medicationDosage: med.dosage,
-                status: status,
-                scheduledTime: med.time
-            )
-            modelContext.insert(log)
-            try? modelContext.save()
-        }
-        navManager.pendingMedication = nil
     }
 }
 

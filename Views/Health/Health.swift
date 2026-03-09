@@ -2,8 +2,6 @@
 //  Health.swift
 //  PulseCor
 //
-//  Created by Manjit Somal on 18/02/2026.
-//
 import SwiftUI
 import SwiftData
 
@@ -15,6 +13,8 @@ struct HealthView: View {
     @Query(sort: \HRVEntry.date, order: .reverse) private var hrvEntries: [HRVEntry]
     @Query private var users: [User]
     @State private var isSyncing = false
+
+    @AppStorage("healthSyncEnabled") private var healthSyncEnabled: Bool = false
 
     private var shouldSync: Bool {
         guard let lastSync = stepEntries.first?.date else { return true }
@@ -52,7 +52,8 @@ struct HealthView: View {
                             title: "Steps",
                             value: stepEntries.first.map { "\(Int($0.count))" } ?? "--",
                             unit: "steps this week",
-                            gradientColors: [Color("AccentCoral"), Color("AccentPink")]
+                            gradientColors: [Color("AccentCoral"), Color("AccentPink")],
+                            infoText: "Total steps counted by your iPhone or Apple Watch over the last 7 days. Read from Apple Health."
                         )
 
                         HealthMetricCard(
@@ -60,7 +61,8 @@ struct HealthView: View {
                             title: "Heart Rate",
                             value: heartRateEntries.first.map { "\(Int($0.bpm))" } ?? "--",
                             unit: "BPM average",
-                            gradientColors: [Color("AccentPink"), Color("LightPurple")]
+                            gradientColors: [Color("AccentPink"), Color("LightPurple")],
+                            infoText: "Average heart rate over the last 7 days. Measured continuously by your Apple Watch and stored in Apple Health."
                         )
 
                         HealthMetricCard(
@@ -68,7 +70,8 @@ struct HealthView: View {
                             title: "Resting Heart Rate",
                             value: restingEntries.first.map { "\(Int($0.bpm))" } ?? "--",
                             unit: "BPM resting",
-                            gradientColors: [Color("FillBlue"), Color("LightPurple")]
+                            gradientColors: [Color("FillBlue"), Color("LightPurple")],
+                            infoText: "Your heart rate when fully at rest, calculated daily by Apple Watch. A lower resting heart rate generally indicates better cardiovascular fitness."
                         )
 
                         HealthMetricCard(
@@ -76,7 +79,8 @@ struct HealthView: View {
                             title: "Heart Rate Variability",
                             value: hrvEntries.first.map { String(format: "%.1f", $0.ms) } ?? "--",
                             unit: "ms SDNN",
-                            gradientColors: [Color("LightGreen"), Color("FillBlue")]
+                            gradientColors: [Color("LightGreen"), Color("FillBlue")],
+                            infoText: "HRV measures the variation in time between heartbeats (SDNN). Higher values typically indicate better recovery and stress resilience. Requires Apple Watch."
                         )
 
                         Text("Data sourced from Apple Health")
@@ -96,7 +100,8 @@ struct HealthView: View {
             .background(Color("MainBG"))
             .navigationBarHidden(true)
             .task {
-                guard shouldSync else { return }
+                // Respect the user's toggle — don't sync if they've disabled Health data
+                guard healthSyncEnabled, shouldSync else { return }
                 isSyncing = true
                 let (success, _) = await HealthKitService.shared.requestAuth()
                 guard success else { isSyncing = false; return }
@@ -111,4 +116,3 @@ struct HealthView: View {
 #Preview {
     HealthView()
 }
-

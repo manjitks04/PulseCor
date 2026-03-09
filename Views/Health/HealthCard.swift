@@ -2,9 +2,7 @@
 //  HealthCard.swift
 //  PulseCor
 //
-//
 import SwiftUI
-import SwiftData
 
 struct HealthMetricCard: View {
     let icon: String
@@ -12,6 +10,9 @@ struct HealthMetricCard: View {
     let value: String
     let unit: String
     let gradientColors: [Color]
+    var infoText: String = ""
+
+    @State private var showInfo = false
 
     var body: some View {
         HStack(spacing: 16) {
@@ -30,7 +31,9 @@ struct HealthMetricCard: View {
                 Text(value)
                     .font(.appHeroBold)
                     .foregroundStyle(
-                        LinearGradient(colors: gradientColors, startPoint: .leading, endPoint: .trailing)
+                        value == "--"
+                            ? AnyShapeStyle(Color.secondary.opacity(0.4))
+                            : AnyShapeStyle(LinearGradient(colors: gradientColors, startPoint: .leading, endPoint: .trailing))
                     )
 
                 Text(unit)
@@ -39,6 +42,25 @@ struct HealthMetricCard: View {
             }
 
             Spacer()
+
+            if !infoText.isEmpty {
+                Button(action: { showInfo = true }) {
+                    Image(systemName: "info.circle")
+                        .font(.body)
+                        .foregroundColor(.secondary.opacity(0.6))
+                }
+                .buttonStyle(.borderless)
+                .popover(isPresented: $showInfo, arrowEdge: .trailing) {
+                    Text(infoText)
+                        .font(.footnote)
+                        .foregroundColor(Color("MainText"))
+                        .multilineTextAlignment(.leading)
+                        .frame(width: 240, alignment: .leading)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(16)
+                        .presentationCompactAdaptation(.popover)
+                }
+            }
         }
         .padding(16)
         .background(Color("CardBG"))
