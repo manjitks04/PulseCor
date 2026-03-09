@@ -11,7 +11,7 @@ class Medication {
     var name: String
     var dosage: String
     var frequency: String
-    var reminderTimes: [String]   // SwiftData handles [String] natively — no more comma-joining
+    var reminderTimes: [String] 
     var isActive: Bool
     var createdAt: Date
     var localId: UUID
@@ -43,7 +43,6 @@ class MedicationLog {
     var timestamp: Date
     var scheduledTime: String
 
-    // Denormalised for calendar lookups — avoids needing a join
     var medicationName: String
     var medicationDosage: String
 

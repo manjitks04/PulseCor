@@ -14,18 +14,13 @@ class NotificationService: NSObject, UNUserNotificationCenterDelegate {
         UNUserNotificationCenter.current().delegate = self
     }
 
-    // MARK: - Delegate Methods
-    // Note: completionHandler parameters here are required by Apple's UNUserNotificationCenterDelegate
-    // protocol — they cannot be removed. The DispatchQueue inside them has been replaced with
-    // Task { @MainActor in }.
-
     func userNotificationCenter(
         _ center: UNUserNotificationCenter,
         willPresent notification: UNNotification,
         withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
     ) {
         let id = notification.request.identifier
-        if id.hasPrefix("medication-") || id == "weekly-reflection" {
+        if id.hasPrefix("medication-") || id.hasPrefix("snooze-") || id == "weekly-reflection" {
             completionHandler([.banner, .sound, .badge])
         } else {
             completionHandler([])
@@ -39,11 +34,23 @@ class NotificationService: NSObject, UNUserNotificationCenterDelegate {
     ) {
         let id = response.notification.request.identifier
         let userInfo = response.notification.request.content.userInfo
+        
+        if (id.hasPrefix("medication-") || id.hasPrefix("snooze-")),
+           let medId = userInfo["medicationId"] as? String,
+           let name = userInfo["medicationName"] as? String,
+           let dosage = userInfo["dosage"] as? String,
+           let time = userInfo["scheduledTime"] as? String {
+
+            UserDefaults.standard.set(medId,forKey: "pendingMedId")
+            UserDefaults.standard.set(name,forKey: "pendingMedName")
+            UserDefaults.standard.set(dosage,forKey: "pendingMedDosage")
+            UserDefaults.standard.set(time,forKey: "pendingMedTime")
+        }
 
         Task { @MainActor in
             if id == "daily-checkin" || id == "weekly-reflection" {
                 NavigationManager.shared.pendingTab = .cora
-            } else if id.hasPrefix("medication-") {
+            } else if id.hasPrefix("medication-") || id.hasPrefix("snooze-") {
                 if let medId = userInfo["medicationId"] as? String,
                    let medName = userInfo["medicationName"] as? String,
                    let dosage = userInfo["dosage"] as? String,
@@ -62,7 +69,6 @@ class NotificationService: NSObject, UNUserNotificationCenterDelegate {
         completionHandler()
     }
 
-    // MARK: - Authorization
 
     func requestAuthorization() async -> Bool {
         do {
@@ -72,8 +78,6 @@ class NotificationService: NSObject, UNUserNotificationCenterDelegate {
             return false
         }
     }
-
-    // MARK: - Medication Notifications
 
     func scheduleMedicationReminders(medicationId: String, medicationName: String, dosage: String, times: [String]) {
         let center = UNUserNotificationCenter.current()
@@ -130,8 +134,14 @@ class NotificationService: NSObject, UNUserNotificationCenterDelegate {
         content.title = "💊 Medication Reminder"
         content.body = "\(medicationName), \(dosage)"
         content.sound = .default
+        content.userInfo = [
+            "medicationId": medicationId,
+            "medicationName": medicationName,
+            "dosage": dosage,
+            "scheduledTime": ""
+        ]
 
-        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 1800, repeats: false)
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 120, repeats: false)
         let request = UNNotificationRequest(identifier: "snooze-\(medicationId)", content: content, trigger: trigger)
         Task {
             do {
@@ -141,8 +151,6 @@ class NotificationService: NSObject, UNUserNotificationCenterDelegate {
             }
         }
     }
-
-    // MARK: - Daily Check-In
 
     func scheduleDailyCheckIn(hour: Int, minute: Int, isAM: Bool) {
         let center = UNUserNotificationCenter.current()
@@ -171,8 +179,6 @@ class NotificationService: NSObject, UNUserNotificationCenterDelegate {
     func cancelDailyCheckIn() {
         UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: ["daily-checkin"])
     }
-
-    // MARK: - Weekly Reflection
 
     func scheduleWeeklyReflection(hour: Int, minute: Int, isAM: Bool) {
         let center = UNUserNotificationCenter.current()

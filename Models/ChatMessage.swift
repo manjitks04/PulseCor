@@ -8,7 +8,7 @@ class ChatMessage {
     var content: String
     var timestamp: Date
     var messageType: MessageType
-    var quickReplies: [String] // non-optional — SwiftData handles [String] natively, defaults to []
+    var quickReplies: [String]
 
     init(
         sessionId: String,

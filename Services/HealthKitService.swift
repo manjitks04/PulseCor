@@ -13,27 +13,22 @@ class HealthKitService {
 
     private init() {}
 
-    // MARK: - Authorization
 
     func requestAuth() async -> (Bool, Error?) {
-        let steps       = HKObjectType.quantityType(forIdentifier: .stepCount)!
-        let heartRate   = HKObjectType.quantityType(forIdentifier: .heartRate)!
-        let resting     = HKObjectType.quantityType(forIdentifier: .restingHeartRate)!
-        let hrv         = HKObjectType.quantityType(forIdentifier: .heartRateVariabilitySDNN)!
+        let steps = HKObjectType.quantityType(forIdentifier: .stepCount)!
+        let heartRate = HKObjectType.quantityType(forIdentifier: .heartRate)!
+        let resting = HKObjectType.quantityType(forIdentifier: .restingHeartRate)!
+        let hrv = HKObjectType.quantityType(forIdentifier: .heartRateVariabilitySDNN)!
         let typesToRead: Set = [steps, heartRate, resting, hrv]
 
-        // HKHealthStore.requestAuthorization has no native async version —
-        // wrap the callback in a continuation so callers can use await
         return await withCheckedContinuation { continuation in
             healthStore.requestAuthorization(toShare: nil, read: typesToRead) { success, error in
                 continuation.resume(returning: (success, error))
             }
         }
     }
-
-    // MARK: - Fetch Methods
-    // HKStatisticsQuery has no native async API — wrapped with withCheckedContinuation
-
+    
+    //Wrapped with withCheckedContinuation
     func fetchSteps(since date: Date, context: ModelContext) async {
         let type = HKObjectType.quantityType(forIdentifier: .stepCount)!
         let predicate = HKQuery.predicateForSamples(withStart: date, end: Date(), options: .strictStartDate)
@@ -133,13 +128,11 @@ class HealthKitService {
         }
     }
 
-    // MARK: - Sync
-
     func syncWeeklySummary(context: ModelContext) {
         let calendar = Calendar.current
         guard let sevenDaysAgo = calendar.date(byAdding: .day, value: -7, to: Date()) else { return }
 
-        // Clear old entries before re-fetching
+        // Clears old entries before re-fetching
         try? context.delete(model: StepEntry.self)
         try? context.delete(model: HeartRateEntry.self)
         try? context.delete(model: RestingHeartRateEntry.self)
@@ -152,8 +145,6 @@ class HealthKitService {
             await fetchHeartRateVar(since: sevenDaysAgo, context: context)
         }
     }
-
-    // MARK: - Background Observation
 
     func startObserving(context: ModelContext) {
         let identifiers: [HKQuantityTypeIdentifier] = [
@@ -169,7 +160,7 @@ class HealthKitService {
             }
             healthStore.execute(query)
 
-            // enableBackgroundDelivery has no async API — Task wrapper keeps it off the main thread
+            // enableBackgroundDelivery keeps it off the main thread
             Task {
                 await withCheckedContinuation { continuation in
                     self.healthStore.enableBackgroundDelivery(for: type, frequency: .hourly) { _, _ in
