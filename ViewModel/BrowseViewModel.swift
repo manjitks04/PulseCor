@@ -9,9 +9,13 @@ import Combine
 @MainActor
 class BrowseViewModel: ObservableObject {
 
+    @Published var sleepArticles: [Article] = []
+    @Published var cardiovascularArticles: [Article] = []
     @Published var generalArticles: [Article] = []
+
     @Published var selectedCategoryArticles: [Article] = []
     @Published var selectedCategoryFAQs: [Article] = []
+
     @Published var errorMessage: String?
 
     private var modelContext: ModelContext?
@@ -28,8 +32,10 @@ class BrowseViewModel: ObservableObject {
     }
 
     func loadRandomArticles() {
-        let all = fetchAllArticles()
-        generalArticles = Array(all.filter { $0.articleType == .helpfulArticle }.shuffled().prefix(9))
+        let all = fetchAllArticles().filter { $0.articleType == .helpfulArticle }
+        sleepArticles         = Array(all.filter { $0.category == .sleep }.shuffled().prefix(3))
+        cardiovascularArticles = Array(all.filter { $0.category == .cardiovascular }.shuffled().prefix(3))
+        generalArticles       = Array(all.filter { $0.category == .generalWellness }.shuffled().prefix(3))
     }
 
     func loadCategoryArticles(category: ArticleCategory) {
