@@ -5,13 +5,12 @@
 import Foundation
 import SwiftData
 import Combine
-
 @MainActor
 class BrowseViewModel: ObservableObject {
 
-    @Published var sleepArticles: [Article] = []
-    @Published var cardiovascularArticles: [Article] = []
-    @Published var generalArticles: [Article] = []
+    @Published var browseSection1: [Article] = []
+    @Published var browseSection2: [Article] = []
+    @Published var browseSection3: [Article] = []
 
     @Published var selectedCategoryArticles: [Article] = []
     @Published var selectedCategoryFAQs: [Article] = []
@@ -20,6 +19,7 @@ class BrowseViewModel: ObservableObject {
 
     private var modelContext: ModelContext?
     private static var hasLoadedThisSession = false
+    private static var categoryCache: [ArticleCategory: [Article]] = [:] 
 
     init() {}
 
@@ -32,17 +32,26 @@ class BrowseViewModel: ObservableObject {
     }
 
     func loadRandomArticles() {
-        let all = fetchAllArticles().filter { $0.articleType == .helpfulArticle }
-        sleepArticles         = Array(all.filter { $0.category == .sleep }.shuffled().prefix(3))
-        cardiovascularArticles = Array(all.filter { $0.category == .cardiovascular }.shuffled().prefix(3))
-        generalArticles       = Array(all.filter { $0.category == .generalWellness }.shuffled().prefix(3))
+        let pool = fetchAllArticles()
+            .filter { $0.articleType == .helpfulArticle && $0.showOnBrowse }
+            .shuffled()
+        browseSection1 = Array(pool.prefix(3))
+        browseSection2 = Array(pool.dropFirst(3).prefix(3))
+        browseSection3 = Array(pool.dropFirst(6).prefix(3))
     }
 
     func loadCategoryArticles(category: ArticleCategory) {
+        if let cached = BrowseViewModel.categoryCache[category] {
+            selectedCategoryArticles = cached
+            return
+        }
+
         let all = fetchAllArticles()
-        selectedCategoryArticles = Array(
+        let articles = Array(
             all.filter { $0.category == category && $0.articleType == .helpfulArticle }.shuffled().prefix(3)
         )
+        BrowseViewModel.categoryCache[category] = articles
+        selectedCategoryArticles = articles
         selectedCategoryFAQs = all.filter { $0.category == category && $0.articleType == .faq }
     }
 

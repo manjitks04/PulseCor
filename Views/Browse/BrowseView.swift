@@ -2,8 +2,6 @@
 //  BrowseView.swift
 //  PulseCor
 //
-//  Used for articles / educational content
-//
 import SwiftUI
 import SwiftData
 
@@ -17,71 +15,22 @@ struct BrowseView: View {
             ZStack(alignment: .topTrailing) {
                 Color("MainBG").ignoresSafeArea()
 
-                ScrollView {
+                ScrollView(showsIndicators: false) {
                     ZStack(alignment: .topTrailing) {
 
                         VStack(spacing: 24) {
-                            // Category Icons
+
                             HStack(alignment: .top, spacing: 0) {
-                                VStack(spacing: 8) {
-                                    Image(systemName: "heart.text.square")
-                                        .font(.system(size: 48, weight: .medium))
-                                        .foregroundColor(.gray)
-
-                                    Text("Cardiovascular Health")
-                                        .font(.system(size: 11, weight: .medium))
-                                        .foregroundColor(.gray)
-                                        .multilineTextAlignment(.center)
-                                        .lineLimit(2)
-                                        .fixedSize(horizontal: false, vertical: true)
-                                }
-                                .frame(maxWidth: .infinity)
-
-                                VStack(spacing: 8) {
-                                    Image(systemName: "bed.double.fill")
-                                        .font(.system(size: 48, weight: .medium))
-                                        .foregroundColor(.gray)
-
-                                    Text("Sleep")
-                                        .font(.system(size: 11, weight: .medium))
-                                        .foregroundColor(.gray)
-                                        .multilineTextAlignment(.center)
-                                        .lineLimit(2)
-                                }
-                                .frame(maxWidth: .infinity)
-
-                                VStack(spacing: 8) {
-                                    Image(systemName: "figure.mind.and.body")
-                                        .font(.system(size: 48, weight: .medium))
-                                        .foregroundColor(.gray)
-
-                                    Text("General Wellness")
-                                        .font(.system(size: 11, weight: .medium))
-                                        .foregroundColor(.gray)
-                                        .multilineTextAlignment(.center)
-                                        .lineLimit(2)
-                                        .fixedSize(horizontal: false, vertical: true)
-                                }
-                                .frame(maxWidth: .infinity)
+                                CategoryNavButton(category: .cardiovascular)
+                                CategoryNavButton(category: .sleep)
+                                CategoryNavButton(category: .generalWellness)
                             }
                             .padding(.top, 25)
 
-                            // Sections
                             Group {
-                                ArticleSection(
-                                    title: "General Tips",
-                                    articles: Array(viewModel.generalArticles.prefix(3))
-                                )
-
-                                ArticleSection(
-                                    title: "Ideas to try",
-                                    articles: Array(viewModel.generalArticles.dropFirst(3).prefix(3))
-                                )
-
-                                ArticleSection(
-                                    title: "Helpful Articles",
-                                    articles: Array(viewModel.generalArticles.dropFirst(6).prefix(3))
-                                )
+                                ArticleSection(title: "General Tips", articles: viewModel.browseSection1)
+                                ArticleSection(title: "Ideas to try", articles: viewModel.browseSection2)
+                                ArticleSection(title: "Helpful Articles", articles: viewModel.browseSection3)
                             }
                         }
                         .padding(.horizontal, 16)
@@ -102,27 +51,39 @@ struct BrowseView: View {
     }
 }
 
-struct CategoryButton: View {
-    let icon: String
-    let label: String
+
+struct CategoryNavButton: View {
     let category: ArticleCategory
 
     var body: some View {
-        VStack(spacing: 6) {
-            Image(systemName: icon)
-                .font(.system(size: 24))
-                .foregroundColor(.secondary)
-                .frame(height: 30)
+        NavigationLink(destination: CategoryDetailView(category: category)) {
+            VStack(spacing: 8) {
+                Image(systemName: category.sfSymbol)
+                    .font(.system(size: 48, weight: .medium))
+                    .foregroundColor(.gray)
+                    .frame(height: 52) 
 
-            Text(label)
-                .font(.system(size: 10, weight: .medium))
-                .foregroundColor(.secondary)
-                .multilineTextAlignment(.center)
-                .lineLimit(2)
+                Text(category.rawValue)
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundColor(.gray)
+                    .multilineTextAlignment(.center)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 8)
         }
-        .frame(maxWidth: .infinity)
+        .buttonStyle(CategoryNavButtonStyle())
     }
 }
+private struct CategoryNavButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.92 : 1.0)
+            .animation(.spring(response: 0.25, dampingFraction: 0.7), value: configuration.isPressed)
+    }
+}
+
 
 struct ArticleSection: View {
     let title: String
@@ -140,9 +101,19 @@ struct ArticleSection: View {
                 .font(.system(size: 20, weight: .bold))
                 .foregroundColor(Color("MainText"))
 
-            LazyVGrid(columns: columns, spacing: 10) {
-                ForEach(articles) { article in
-                    ArticleCard(article: article)
+            if articles.isEmpty {
+                LazyVGrid(columns: columns, spacing: 10) {
+                    ForEach(0..<3, id: \.self) { _ in
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(Color.gray.opacity(0.12))
+                            .frame(height: 140)
+                    }
+                }
+            } else {
+                LazyVGrid(columns: columns, spacing: 10) {
+                    ForEach(articles) { article in
+                        ArticleCard(article: article)
+                    }
                 }
             }
         }
@@ -181,10 +152,32 @@ struct ArticleCard: View {
                         .padding(8)
                 }
             }
-            .frame(height: 140)
+            .frame(height: 150)
             .cornerRadius(12)
             .shadow(color: Color.black.opacity(0.1), radius: 3, x: 0, y: 2)
         }
         .buttonStyle(PlainButtonStyle())
+    }
+}
+
+struct CategoryButton: View {
+    let icon: String
+    let label: String
+    let category: ArticleCategory
+
+    var body: some View {
+        VStack(spacing: 6) {
+            Image(systemName: icon)
+                .font(.system(size: 24))
+                .foregroundColor(.secondary)
+                .frame(height: 30)
+
+            Text(label)
+                .font(.system(size: 10, weight: .medium))
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+                .lineLimit(2)
+        }
+        .frame(maxWidth: .infinity)
     }
 }

@@ -7,12 +7,14 @@ import SwiftData
 
 @Model
 class Article {
+    var id: UUID = UUID()
     var title: String
     var summary: String
     var content: String
     var category: ArticleCategory
     var articleType: ArticleType
     var imageName: String?
+    var showOnBrowse: Bool = true
 
     init(
         title: String,
@@ -20,7 +22,8 @@ class Article {
         content: String,
         category: ArticleCategory,
         articleType: ArticleType,
-        imageName: String? = nil
+        imageName: String? = nil,
+        showOnBrowse: Bool = true
     ) {
         self.title = title
         self.summary = summary
@@ -28,9 +31,9 @@ class Article {
         self.category = category
         self.articleType = articleType
         self.imageName = imageName
+        self.showOnBrowse = showOnBrowse
     }
 }
-
 
 enum ArticleCategory: String, Codable, CaseIterable {
     case cardiovascular = "Cardiovascular Health"
