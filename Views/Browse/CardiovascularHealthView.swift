@@ -1,6 +1,0 @@
-//
-//  CardiovascularHealthView.swift
-//  PulseCor
-//
-//
-
