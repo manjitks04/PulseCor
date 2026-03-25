@@ -17,7 +17,7 @@ struct ArticleDetailView: View {
                     Image(imageName)
                         .resizable()
                         .aspectRatio(contentMode: .fill)
-                        .frame(height: 250)
+                        .frame(maxWidth: .infinity, maxHeight: 250)
                         .clipped()
                         .cornerRadius(16)
                 } else {

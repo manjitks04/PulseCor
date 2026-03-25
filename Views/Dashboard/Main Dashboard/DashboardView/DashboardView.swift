@@ -22,11 +22,28 @@ struct DashboardView: View {
     @EnvironmentObject var navManager: NavigationManager
     @StateObject private var viewModel = DashboardViewModel()
     @State private var activeSheet: DashboardSheet?
+    @State private var featuredArticles: [Article] = []
 
     @Query private var users: [User]
 
+    @Query(filter: #Predicate<DailyCheckIn> { $0.isComplete == true })
+    private var allCheckIns: [DailyCheckIn]
+
+    @Query(filter: #Predicate<Article> { $0.showOnBrowse == true })
+    private var browseArticles: [Article]
+
     var weekDays: [CalendarDay] { WeeklyCalendarHelper.getCurrentWeek() }
     var monthYear: String { WeeklyCalendarHelper.getMonthYear() }
+
+    private var currentStreak: Int {
+        users.first?.currentStreak ?? 0
+    }
+
+    private var weeklyCheckInCount: Int {
+        let calendar = Calendar.current
+        guard let weekStart = calendar.dateInterval(of: .weekOfYear, for: Date())?.start else { return 0 }
+        return allCheckIns.filter { $0.date >= weekStart }.count
+    }
 
     var body: some View {
         NavigationStack {
@@ -103,8 +120,8 @@ struct DashboardView: View {
                         .padding(.horizontal)
 
                         HStack(spacing: 16) {
-                            WeeklyCheckIn(completedDays: viewModel.weeklyCheckInCount)
-                            StreakCard(currentStreak: viewModel.currentStreak)
+                            WeeklyCheckIn(completedDays: weeklyCheckInCount)
+                            StreakCard(currentStreak: currentStreak)
                         }
                         .padding(.horizontal)
 
@@ -115,7 +132,7 @@ struct DashboardView: View {
                                 .padding(.horizontal)
 
                             HStack(spacing: 8) {
-                                ForEach(viewModel.featuredArticles) { article in
+                                ForEach(featuredArticles) { article in
                                     DashboardArticleCard(article: article)
                                 }
                             }
@@ -140,6 +157,9 @@ struct DashboardView: View {
                 }
             }
             .onAppear {
+                if featuredArticles.isEmpty {
+                    featuredArticles = Array(browseArticles.shuffled().prefix(3))
+                }
                 viewModel.loadDashboardData()
             }
             .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
