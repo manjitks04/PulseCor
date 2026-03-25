@@ -15,6 +15,8 @@ struct ChatView: View {
            sort: \DailyCheckIn.date, order: .reverse)
     private var checkIns: [DailyCheckIn]
 
+    @StateObject private var cardViewModel = CoraCardViewModel()
+
     private var hasCheckedInToday: Bool {
         let today = Calendar.current.startOfDay(for: Date())
         return checkIns.first.map {
@@ -39,6 +41,13 @@ struct ChatView: View {
 
                         DailyStreakTracker(currentDay: currentStreak)
 
+                        CoraCardView(
+                            cardType: cardViewModel.cardType,
+                            onViewReflection: {
+                                // TODO: navigate to weekly reflection screen
+                            }
+                        )
+
                         Spacer(minLength: 20)
                     }
                     .padding(.horizontal, 16)
@@ -53,6 +62,12 @@ struct ChatView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(Color("MainBG"))
+            .onAppear {
+                cardViewModel.load(checkIns: checkIns)
+            }
+            .onChange(of: checkIns.count) {
+                cardViewModel.load(checkIns: checkIns)
+            }
         }
     }
 }
