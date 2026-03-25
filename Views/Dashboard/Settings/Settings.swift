@@ -3,6 +3,7 @@
 //  PulseCor
 //
 import SwiftUI
+import Combine
 import SwiftData
 
 struct SettingsView: View {
@@ -16,10 +17,7 @@ struct SettingsView: View {
     @State private var isEditingName: Bool = false
     @ObservedObject private var healthManager = HealthKitManager.shared
 
-    // Backed by AppStorage so the toggle survives app restarts.
-    // On first launch it defaults to false; after auth is granted it flips to true.
     @AppStorage("healthSyncEnabled") private var healthSyncEnabled: Bool = false
-
     @AppStorage("isDarkMode") private var isDarkMode: Bool = false
     @AppStorage("dailyCheckInEnabled") private var dailyCheckInEnabled: Bool = true
     @AppStorage("checkInHour") private var checkInHour: Int = 11
@@ -28,6 +26,7 @@ struct SettingsView: View {
     @AppStorage("weeklyReflectionHour") private var weeklyReflectionHour: Int = 18
     @AppStorage("weeklyReflectionMinute") private var weeklyReflectionMinute: Int = 0
 
+    @StateObject private var settingsViewModel = SettingsViewModel()
     @StateObject private var medicationViewModel = MedicationViewModel()
     @State private var showingAddMedication = false
     @State private var medicationToEdit: Medication?
@@ -150,29 +149,21 @@ struct SettingsView: View {
                                     .tint(Color("AccentPink"))
                                     .onChange(of: healthSyncEnabled) { _, newValue in
                                         if newValue {
-                                            // Request auth and sync
                                             Task {
                                                 let (success, _) = await HealthKitService.shared.requestAuth()
                                                 if success {
                                                     HealthKitService.shared.syncWeeklySummary(context: modelContext)
                                                 } else {
-                                                    // Auth failed or denied — flip toggle back off
                                                     healthSyncEnabled = false
                                                 }
                                             }
                                         } else {
-                                            // Clear local cached health data so My Health shows --
-                                            try? modelContext.delete(model: StepEntry.self)
-                                            try? modelContext.delete(model: HeartRateEntry.self)
-                                            try? modelContext.delete(model: RestingHeartRateEntry.self)
-                                            try? modelContext.delete(model: HRVEntry.self)
+                                            settingsViewModel.clearHealthData()
                                         }
                                     }
                             }
                             .padding()
 
-                            // Disclaimer only shown when toggled off — explains that
-                            // HealthKit read access must be revoked separately in the Health app
                             if !healthSyncEnabled {
                                 Divider().padding(.horizontal)
 
@@ -283,6 +274,7 @@ struct SettingsView: View {
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.large)
             .task {
+                settingsViewModel.setContext(modelContext)
                 medicationViewModel.setContext(modelContext)
                 if healthSyncEnabled {
                     HealthKitService.shared.syncWeeklySummary(context: modelContext)
@@ -304,9 +296,7 @@ struct SettingsView: View {
     }
 
     private func saveName() {
-        guard let user = currentUser, !editedName.isEmpty else { return }
-        user.name = editedName
-        try? modelContext.save()
+        settingsViewModel.saveName(editedName)
         isEditingName = false
     }
 

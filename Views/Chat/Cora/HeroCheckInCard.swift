@@ -2,30 +2,14 @@
 //  HeroCheckInCard.swift
 //  PulseCor
 //
+//  Receives hasCheckedInToday as a parameter 
+//  The parent View (ChatView) provides the value via @Query at screen level.
+
 import SwiftUI
-import SwiftData
 
 struct HeroCheckInCard: View {
     let userName: String
-
-    @Query private var todaysCheckIns: [DailyCheckIn]
-
-    // Derived from query
-    private var hasCheckedInToday: Bool {
-        let today = Calendar.current.startOfDay(for: Date())
-        return todaysCheckIns.contains {
-            $0.isComplete && Calendar.current.startOfDay(for: $0.date) == today
-        }
-    }
-
-    init(userName: String) {
-        self.userName = userName
-        let start = Calendar.current.startOfDay(for: Date())
-        let end = Calendar.current.date(byAdding: .day, value: 1, to: start)!
-        _todaysCheckIns = Query(filter: #Predicate<DailyCheckIn> {
-            $0.date >= start && $0.date < end
-        })
-    }
+    let hasCheckedInToday: Bool
 
     var body: some View {
         ZStack(alignment: .leading) {

@@ -64,8 +64,6 @@ struct DayDetailView: View {
         }
     }
 
-    // MARK: - Sections
-
     private var headerSection: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(dayOfWeek)

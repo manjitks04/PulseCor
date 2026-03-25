@@ -12,14 +12,9 @@ struct HealthView: View {
     @Query(sort: \RestingHeartRateEntry.date, order: .reverse) private var restingEntries: [RestingHeartRateEntry]
     @Query(sort: \HRVEntry.date, order: .reverse) private var hrvEntries: [HRVEntry]
     @Query private var users: [User]
-    @State private var isSyncing = false
 
+    @StateObject private var viewModel = HealthViewModel()
     @AppStorage("healthSyncEnabled") private var healthSyncEnabled: Bool = false
-
-    private var shouldSync: Bool {
-        guard let lastSync = stepEntries.first?.date else { return true }
-        return Date().timeIntervalSince(lastSync) > 3600
-    }
 
     var body: some View {
         NavigationStack {
@@ -36,7 +31,7 @@ struct HealthView: View {
                                     Text("Last 7 days")
                                         .font(.subheadline)
                                         .foregroundColor(.secondary)
-                                    if isSyncing {
+                                    if viewModel.isSyncing {
                                         ProgressView()
                                             .scaleEffect(0.7)
                                     }
@@ -100,14 +95,11 @@ struct HealthView: View {
             .background(Color("MainBG"))
             .navigationBarHidden(true)
             .task {
-                // Respect the user's toggle — don't sync if they've disabled Health data
-                guard healthSyncEnabled, shouldSync else { return }
-                isSyncing = true
-                let (success, _) = await HealthKitService.shared.requestAuth()
-                guard success else { isSyncing = false; return }
-                HealthKitService.shared.syncWeeklySummary(context: context)
-                try? await Task.sleep(for: .seconds(2))
-                isSyncing = false
+                viewModel.setContext(context)
+                await viewModel.syncIfNeeded(
+                    healthSyncEnabled: healthSyncEnabled,
+                    lastSyncDate: stepEntries.first?.date
+                )
             }
         }
     }

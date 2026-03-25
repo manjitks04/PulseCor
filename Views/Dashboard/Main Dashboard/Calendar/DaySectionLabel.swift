@@ -16,24 +16,3 @@ struct DaySectionLabel: View {
             .padding(.horizontal, 4)
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

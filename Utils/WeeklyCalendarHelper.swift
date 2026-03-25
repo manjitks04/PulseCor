@@ -1,5 +1,5 @@
 //
-//  Calendar.swift
+//  WeeklyCalendarHelper.swift
 //  PulseCor
 //
 //calendar needed for dashboard view

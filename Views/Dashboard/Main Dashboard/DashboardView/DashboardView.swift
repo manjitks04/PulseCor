@@ -24,25 +24,9 @@ struct DashboardView: View {
     @State private var activeSheet: DashboardSheet?
 
     @Query private var users: [User]
-    @Query private var todaysCheckIns: [DailyCheckIn]
-
-    private var hasCheckedInToday: Bool {
-        let today = Calendar.current.startOfDay(for: Date())
-        return todaysCheckIns.contains {
-            $0.isComplete && Calendar.current.startOfDay(for: $0.date) == today
-        }
-    }
 
     var weekDays: [CalendarDay] { WeeklyCalendarHelper.getCurrentWeek() }
     var monthYear: String { WeeklyCalendarHelper.getMonthYear() }
-
-    init() {
-        let start = Calendar.current.startOfDay(for: Date())
-        let end = Calendar.current.date(byAdding: .day, value: 1, to: start)!
-        _todaysCheckIns = Query(filter: #Predicate<DailyCheckIn> {
-            $0.date >= start && $0.date < end
-        })
-    }
 
     var body: some View {
         NavigationStack {
@@ -151,20 +135,20 @@ struct DashboardView: View {
             .task {
                 viewModel.setContext(modelContext)
                 if users.isEmpty {
-//                    modelContext.insert(User(name: "Test"))
                     let profilePics = (1...10).map { "PFP \($0)" }
                     modelContext.insert(User(name: "Test", profilePic: profilePics.randomElement() ?? "PFP 1"))
                 }
             }
-            //Fires after the app is fully launched
+            .onAppear {
+                viewModel.loadDashboardData()
+            }
             .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
                 navManager.restorePendingMedicationIfNeeded()
                 showMedicationIfPending()
+                viewModel.loadDashboardData()
             }
             .onReceive(navManager.$pendingMedication) { med in
-                if med != nil {
-                    showMedicationIfPending()
-                }
+                if med != nil { showMedicationIfPending() }
             }
             .sheet(item: $activeSheet) { sheet in
                 switch sheet {
@@ -197,9 +181,17 @@ struct DashboardView: View {
         }
     }
 
+    @ViewBuilder
+    private func destinationView() -> some View {
+        if viewModel.hasCheckedInToday {
+            AlreadyCheckedInView()
+        } else {
+            ConversationView()
+        }
+    }
+
     private func showMedicationIfPending() {
         guard let med = navManager.pendingMedication else { return }
-        // If this exact sheet is already showing, don't re-trigger
         if case .medication(let current) = activeSheet, current == med { return }
         Task {
             try? await Task.sleep(for: .milliseconds(800))
@@ -213,25 +205,8 @@ struct DashboardView: View {
     }
 
     private func logMedication(med: PendingMedication, status: MedicationStatus) {
-        let log = MedicationLog(
-            medicationLocalId: UUID(uuidString: med.id) ?? UUID(),
-            medicationName: med.name,
-            medicationDosage: med.dosage,
-            status: status,
-            scheduledTime: med.time
-        )
-        modelContext.insert(log)
-        try? modelContext.save()
+        viewModel.logMedicationAction(med: med, status: status)
         dismissMedicationSheet()
-    }
-
-    @ViewBuilder
-    private func destinationView() -> some View {
-        if hasCheckedInToday {
-            AlreadyCheckedInView()
-        } else {
-            ConversationView()
-        }
     }
 }
 
