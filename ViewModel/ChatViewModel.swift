@@ -17,6 +17,7 @@ class ChatViewModel: ObservableObject {
     @Published var messages: [ChatMessage] = []
     @Published var isTyping: Bool = false
     @Published var currentQuickReplies: [String] = []
+    @Published var unlockedBadge: StreakBadge? = nil
     @Published var errorMessage: String?
 
     private var modelContext: ModelContext?
@@ -72,10 +73,7 @@ class ChatViewModel: ObservableObject {
     func handleUserResponse(_ response: String) {
         saveUserMessage(content: response)
         guard let flow = currentFlow else { return }
-
-        Task {
-            await processResponse(response, flow: flow)
-        }
+        Task { await processResponse(response, flow: flow) }
     }
 
     private func processResponse(_ response: String, flow: ConversationFlow) async {
@@ -171,10 +169,18 @@ class ChatViewModel: ObservableObject {
                 content: "Perfect, you're all done for the day! You're on a \(streak)-day streak! 🎉 See you tomorrow!"
             )
             completeConversation(flow: flow)
+            checkBadgeUnlock(newStreak: streak)
         } catch {
             await sendCoraMessage(content: "I had a little trouble saving your check-in. 💙")
         }
     }
+
+    private func checkBadgeUnlock(newStreak: Int) {
+        guard let badge = allBadgeDefinitions.first(where: { $0.requiredDays == newStreak }) else { return }
+        unlockedBadge = badge
+    }
+    
+
 
     private func moveToNextStep(_ step: ConversationStep, flow: ConversationFlow) {
         flow.currentStep = step
@@ -222,68 +228,68 @@ class ChatViewModel: ObservableObject {
     func restoreQuickRepliesForCurrentStep() {
         guard let flow = currentFlow else { return }
         switch flow.currentStep {
-        case .greeting: currentQuickReplies = ["Yes, let's do it!", "Not right now"]
+        case .greeting:       currentQuickReplies = ["Yes, let's do it!", "Not right now"]
         case .askSleepQuality: currentQuickReplies = SleepQuality.allCases.map { $0.rawValue }
-        case .askSleepHours: currentQuickReplies = SleepHours.allCases.map { $0.rawValue }
-        case .askWater: currentQuickReplies = WaterIntake.allCases.map { $0.rawValue }
-        case .askStress: currentQuickReplies = StressLevel.allCases.map { $0.rawValue }
-        case .askEnergy: currentQuickReplies = EnergyLevel.allCases.map { $0.rawValue }
-        case .askActivity: currentQuickReplies = ActivityLevel.allCases.map { $0.rawValue }
-        default: currentQuickReplies = []
+        case .askSleepHours:  currentQuickReplies = SleepHours.allCases.map { $0.rawValue }
+        case .askWater:       currentQuickReplies = WaterIntake.allCases.map { $0.rawValue }
+        case .askStress:      currentQuickReplies = StressLevel.allCases.map { $0.rawValue }
+        case .askEnergy:      currentQuickReplies = EnergyLevel.allCases.map { $0.rawValue }
+        case .askActivity:    currentQuickReplies = ActivityLevel.allCases.map { $0.rawValue }
+        default:              currentQuickReplies = []
         }
     }
 
     private func getSleepQualityResponse(_ quality: String) -> String {
         switch SleepQuality(rawValue: quality) {
         case .refreshed: return "That's wonderful! Good sleep makes such a difference ✨"
-        case .okay: return "Fair enough. At least you got some rest 😊"
-        case .groggy: return "I hear you. Some nights are harder than others 💙"
-        default: return "Thanks for sharing how you slept! 😴"
+        case .okay:      return "Fair enough. At least you got some rest 😊"
+        case .groggy:    return "I hear you. Some nights are harder than others 💙"
+        default:         return "Thanks for sharing how you slept! 😴"
         }
     }
 
     private func getSleepHoursResponse(_ hours: String) -> String {
         switch SleepHours(rawValue: hours) {
         case .eightPlus, .sevenToEight: return "That's really good! Right in the sweet spot ✨"
-        case .sixToSeven: return "Not too bad, but maybe a little more rest tonight? 🌙"
-        case .lessThanSix: return "I understand. Hope you can catch up on rest soon 💙"
-        default: return "Got it, thanks for tracking your rest! 🌙"
+        case .sixToSeven:               return "Not too bad, but maybe a little more rest tonight? 🌙"
+        case .lessThanSix:              return "I understand. Hope you can catch up on rest soon 💙"
+        default:                        return "Got it, thanks for tracking your rest! 🌙"
         }
     }
 
     private func getWaterResponse(_ water: String) -> String {
         switch WaterIntake(rawValue: water) {
         case .veryHigh: return "Wow! You're absolutely crushing hydration today!"
-        case .high: return "Great job! You're keeping yourself well hydrated!"
+        case .high:     return "Great job! You're keeping yourself well hydrated!"
         case .moderate: return "Nice! You're on the right track 💙"
-        case .low: return "No worries! There's still time to catch up. Your body will thank you 💧"
-        default: return "Thanks for letting me know! 💧"
+        case .low:      return "No worries! There's still time to catch up. Your body will thank you 💧"
+        default:        return "Thanks for letting me know! 💧"
         }
     }
 
     private func getStressResponse(_ stress: String) -> String {
         switch StressLevel(rawValue: stress) {
-        case .calm: return "That's so good to hear! Keep riding that peaceful wave 😌✨"
+        case .calm:     return "That's so good to hear! Keep riding that peaceful wave 😌✨"
         case .moderate: return "I hear you. Remember, you're doing your best. Take a deep breath. 🌬️"
-        case .high: return "I'm sorry it's a tough day. One step at a time, you've got this. 💙"
-        default: return "Thanks for checking in with your stress levels. 💙"
+        case .high:     return "I'm sorry it's a tough day. One step at a time, you've got this. 💙"
+        default:        return "Thanks for checking in with your stress levels. 💙"
         }
     }
 
     private func getEnergyResponse(_ energy: String) -> String {
         switch EnergyLevel(rawValue: energy) {
-        case .high: return "Love that! You're crushing it today 🚀"
+        case .high:   return "Love that! You're crushing it today 🚀"
         case .medium: return "Steady and balanced — that's great! ⚡"
-        case .low: return "Listen to your body today. It's okay to take it slow. 🛌"
-        default: return "Thanks for sharing your energy levels! ⚡"
+        case .low:    return "Listen to your body today. It's okay to take it slow. 🛌"
+        default:      return "Thanks for sharing your energy levels! ⚡"
         }
     }
 
     private func getActivityResponse(_ activity: String) -> String {
         switch ActivityLevel(rawValue: activity) ?? .none {
-        case .high: return "Wow, look at you go! Movement is such a great mood booster. 🚀"
-        case .medium: return "Nice job getting some movement in today! ✨"
-        case .low, .none: return "That's okay! Rest is just as important as movement. 💙"
+        case .high:        return "Wow, look at you go! Movement is such a great mood booster. 🚀"
+        case .medium:      return "Nice job getting some movement in today! ✨"
+        case .low, .none:  return "That's okay! Rest is just as important as movement. 💙"
         }
     }
 }
