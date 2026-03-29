@@ -8,9 +8,6 @@ import SwiftData
 
 
 struct SettingsView: View {
-#if DEBUG
-@State private var debugStreak: Int = 0
-#endif
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
     @Query private var users: [User]
@@ -189,7 +186,7 @@ struct SettingsView: View {
                         .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.gray.opacity(0.2), lineWidth: 1))
                     }
                     .padding()
-                    
+
                     VStack(alignment: .leading, spacing: 16) {
                         Text("Notifications")
                             .font(.title).fontWeight(.semibold).foregroundColor(Color("TextBlue"))
@@ -274,6 +271,7 @@ struct SettingsView: View {
                             }
                         }
                     }
+
                 }
             }
             .background(Color("MainBG"))

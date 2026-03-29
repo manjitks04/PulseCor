@@ -8,8 +8,10 @@ import SwiftData
 struct DailyStreakTracker: View {
     let currentDay: Int
     let rewards = [5, 5, 10, 10, 15, 15, 25]
-    
+
     var body: some View {
+        let displayDay = currentDay == 0 ? 0 : currentDay % 7 == 0 ? 7 : currentDay % 7
+
         VStack(spacing: 16) {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
@@ -17,41 +19,42 @@ struct DailyStreakTracker: View {
                         .font(.title3)
                         .fontWeight(.bold)
                         .foregroundColor(Color("MainText"))
-                    
+
                     Text(currentDay >= 7 ?
                          "Congratulations for achieving a 7 day streak! Your badge will show on your profile!" :
                          "Achieve a 7 day streak to unlock a special badge!")
                         .font(.subheadline)
                         .foregroundColor(Color("MainText").opacity(0.7))
+                        .fixedSize(horizontal: false, vertical: true)
                 }
                 Spacer()
             }
-            
+
             HStack(spacing: 8) {
                 ForEach(1...7, id: \.self) { day in
-                    DayCard(day: day, reward: rewards[day - 1], isCompleted: day <= currentDay, isCurrent: day == currentDay)
+                    DayCard(day: day, reward: rewards[day - 1], isCompleted: day <= displayDay, isCurrent: day == displayDay)
                 }
             }
-            
+
             GeometryReader { geometry in
                 ZStack(alignment: .leading) {
                     Rectangle().fill(Color.gray.opacity(0.3)).frame(height: 4)
                     Rectangle()
                         .fill(LinearGradient(colors: [Color("AccentCoral"), Color("AccentPink")], startPoint: .leading, endPoint: .trailing))
-                        .frame(width: geometry.size.width * CGFloat(min(currentDay, 7)) / 7, height: 4)
+                        .frame(width: geometry.size.width * CGFloat(min(displayDay, 7)) / 7, height: 4)
                 }
                 .cornerRadius(2)
             }
             .frame(height: 4)
             .padding(.horizontal, 4)
-            
+
             HStack {
                 Text("Current streak: \(currentDay) day\(currentDay != 1 ? "s" : "")")
                     .font(.subheadline)
                     .fontWeight(.semibold)
                     .foregroundColor(Color("MainText"))
                 Spacer()
-                let earnedPoints = rewards.prefix(min(currentDay, 7)).reduce(0, +)
+                let earnedPoints = rewards.prefix(min(displayDay, 7)).reduce(0, +)
                 Text("\(earnedPoints)/\(rewards.reduce(0, +)) pts")
                     .font(.subheadline)
                     .foregroundColor(Color("MainText").opacity(0.6))
@@ -64,4 +67,3 @@ struct DailyStreakTracker: View {
         .shadow(color: .black.opacity(0.05), radius: 8, y: 4)
     }
 }
-

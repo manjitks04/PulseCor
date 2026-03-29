@@ -109,7 +109,7 @@ class CoraCardViewModel: ObservableObject {
 
         case 3, 6:
             let lastWeek = recentCheckIns(checkIns)
-            if lastWeek.count >= 4 {
+            if lastWeek.count >= 7 {
                 cardType = .stat(computeSimpleStat(lastWeek))
             } else {
                 cardType = .insufficientData

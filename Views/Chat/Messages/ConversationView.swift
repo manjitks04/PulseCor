@@ -9,16 +9,11 @@ import SwiftData
 struct ConversationView: View {
     @Environment(\.modelContext) private var modelContext
     @StateObject private var viewModel = ChatViewModel()
-    @StateObject private var cardViewModel = CoraCardViewModel()
-
-    @Query(filter: #Predicate<DailyCheckIn> { $0.isComplete })
-    private var allCheckIns: [DailyCheckIn]
 
     var body: some View {
         VStack(spacing: 0) {
             messageList
             quickReplies
-            CoraCardView(cardType: cardViewModel.cardType, onViewReflection: {})
         }
         .navigationTitle("Cora")
         .navigationBarTitleDisplayMode(.inline)
@@ -26,10 +21,6 @@ struct ConversationView: View {
         .onAppear {
             viewModel.setContext(modelContext)
             if viewModel.messages.isEmpty { viewModel.startDailyCheckIn() }
-            cardViewModel.load(checkIns: allCheckIns)
-        }
-        .onChange(of: allCheckIns.count) {
-            cardViewModel.load(checkIns: allCheckIns)
         }
         .sheet(item: $viewModel.unlockedBadge) { badge in
             BadgeUnlockSheet(badge: badge) { viewModel.unlockedBadge = nil }

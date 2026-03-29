@@ -126,8 +126,6 @@ private struct SundayTeaserCard: View {
     }
 }
 
-// MARK: - Insufficient Data Card
-
 private struct InsufficientDataCard: View {
     var body: some View {
         CardShell {

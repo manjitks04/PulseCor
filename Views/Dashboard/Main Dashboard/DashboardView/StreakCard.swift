@@ -51,29 +51,6 @@ struct StreakCard: View {
                             .font(.subheadline)
                             .fontWeight(.semibold)
                             .foregroundColor(Color("SecondaryText"))
-                        
-                        //badges on different occasains
-                        if currentStreak >= 7 {
-                            HStack(spacing: 6) {
-                                if currentStreak >= 7 {
-                                    Image(systemName: "flame.fill")
-                                        .foregroundColor(.orange)
-                                }
-                                if currentStreak >= 30 {
-                                    Image(systemName: "star.fill")
-                                        .foregroundColor(.yellow)
-                                }
-                                if currentStreak >= 90 {
-                                    Image(systemName: "crown.fill")
-                                        .foregroundColor(.purple)
-                                }
-                                if currentStreak >= 365 {
-                                    Image(systemName: "trophy.fill")
-                                        .foregroundColor(.green)
-                                }
-                            }
-                            .font(.caption)
-                        }
                     }
                 }
             }

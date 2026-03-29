@@ -16,6 +16,7 @@ struct ChatView: View {
     private var checkIns: [DailyCheckIn]
 
     @StateObject private var cardViewModel = CoraCardViewModel()
+    @State private var showingReflection = false
 
     private var hasCheckedInToday: Bool {
         let today = Calendar.current.startOfDay(for: Date())
@@ -43,9 +44,7 @@ struct ChatView: View {
 
                         CoraCardView(
                             cardType: cardViewModel.cardType,
-                            onViewReflection: {
-                                // TODO: navigate to weekly reflection screen
-                            }
+                            onViewReflection: { showingReflection = true }
                         )
 
                         Spacer(minLength: 20)
@@ -67,6 +66,9 @@ struct ChatView: View {
             }
             .onChange(of: checkIns.count) {
                 cardViewModel.load(checkIns: checkIns)
+            }
+            .fullScreenCover(isPresented: $showingReflection) {
+                WeeklyReflectionView(userStreak: currentStreak)
             }
         }
     }
