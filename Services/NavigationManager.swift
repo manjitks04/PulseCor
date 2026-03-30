@@ -1,3 +1,7 @@
+//
+//  NavigationManager.swift
+//  PulseCor
+//
 import SwiftUI
 import Combine
 
@@ -17,6 +21,7 @@ class NavigationManager: ObservableObject {
 
     @Published var selectedTab: AppTab = .home
     @Published var pendingTab: AppTab? = nil
+    @Published var pendingWeeklyReflection: Bool = false
 
     // Backs up to UserDefaults whenever set so cold launches can restore it
     @Published var pendingMedication: PendingMedication? = nil {
@@ -37,7 +42,7 @@ class NavigationManager: ObservableObject {
 
     private init() {}
 
-    //Called from DashboardView.onAppear and so restores medication from UserDefaults
+    // Called from DashboardView.onAppear & restores medication from UserDefaults
     func restorePendingMedicationIfNeeded() {
         guard pendingMedication == nil,
               let id     = UserDefaults.standard.string(forKey: "pendingMedId"),

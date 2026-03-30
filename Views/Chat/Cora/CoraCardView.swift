@@ -18,7 +18,7 @@ struct CoraCardView: View {
         case .sundayTeaser(let stat):
             SundayTeaserCard(stat: stat, onViewReflection: onViewReflection)
         case .sundayTopStat(let text):
-            StatCard(text: text)
+            SundayTopStatCard(text: text, onViewReflection: onViewReflection)
         case .insufficientData:
             InsufficientDataCard()
         }
@@ -27,7 +27,6 @@ struct CoraCardView: View {
 
 private struct TipCard: View {
     let tip: CoraTip
-
     var body: some View {
         CardShell {
             VStack(alignment: .leading, spacing: 12) {
@@ -36,22 +35,17 @@ private struct TipCard: View {
                         .foregroundColor(Color("AccentCoral"))
                         .font(.system(size: 18, weight: .semibold))
                     Text("Today's Tip")
-                        .font(.title3)
-                        .fontWeight(.bold)
+                        .font(.title3).fontWeight(.bold)
                         .foregroundColor(Color("MainText"))
                 }
-
                 Text(tip.text)
                     .font(.subheadline)
                     .foregroundColor(Color("MainText").opacity(0.8))
                     .fixedSize(horizontal: false, vertical: true)
                     .lineSpacing(4)
-
                 Spacer()
-
                 Text("— \(tip.source)")
-                    .font(.caption)
-                    .italic()
+                    .font(.caption).italic()
                     .foregroundColor(Color("MainText").opacity(0.45))
             }
         }
@@ -60,7 +54,6 @@ private struct TipCard: View {
 
 private struct StatCard: View {
     let text: String
-
     var body: some View {
         CardShell {
             VStack(alignment: .leading, spacing: 12) {
@@ -68,18 +61,15 @@ private struct StatCard: View {
                     Image(systemName: "chart.bar.fill")
                         .foregroundColor(Color("AccentCoral"))
                         .font(.system(size: 18, weight: .semibold))
-                    Text("Last Week")
-                        .font(.title3)
-                        .fontWeight(.bold)
+                    Text("This Week")
+                        .font(.title3).fontWeight(.bold)
                         .foregroundColor(Color("MainText"))
                 }
-
                 Text(text)
                     .font(.subheadline)
                     .foregroundColor(Color("MainText").opacity(0.8))
                     .fixedSize(horizontal: false, vertical: true)
                     .lineSpacing(4)
-
                 Spacer()
             }
         }
@@ -89,7 +79,6 @@ private struct StatCard: View {
 private struct SundayTeaserCard: View {
     let stat: String
     var onViewReflection: (() -> Void)?
-
     var body: some View {
         CardShell {
             VStack(alignment: .leading, spacing: 12) {
@@ -98,23 +87,52 @@ private struct SundayTeaserCard: View {
                         .foregroundColor(Color("AccentCoral"))
                         .font(.system(size: 18, weight: .semibold))
                     Text("Weekly Reflection")
-                        .font(.title3)
-                        .fontWeight(.bold)
+                        .font(.title3).fontWeight(.bold)
                         .foregroundColor(Color("MainText"))
                 }
-
                 Text(stat)
                     .font(.subheadline)
                     .foregroundColor(Color("MainText").opacity(0.8))
                     .fixedSize(horizontal: false, vertical: true)
                     .lineSpacing(4)
-
                 Spacer()
-
                 Button(action: { onViewReflection?() }) {
                     Text("See your full weekly reflection →")
-                        .font(.subheadline)
-                        .fontWeight(.semibold)
+                        .font(.subheadline).fontWeight(.semibold)
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .background(Color("AccentCoral"))
+                        .cornerRadius(12)
+                }
+            }
+        }
+    }
+}
+
+private struct SundayTopStatCard: View {
+    let text: String
+    var onViewReflection: (() -> Void)?
+    var body: some View {
+        CardShell {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(spacing: 8) {
+                    Image(systemName: "chart.bar.fill")
+                        .foregroundColor(Color("AccentCoral"))
+                        .font(.system(size: 18, weight: .semibold))
+                    Text("This Week")
+                        .font(.title3).fontWeight(.bold)
+                        .foregroundColor(Color("MainText"))
+                }
+                Text(text)
+                    .font(.subheadline)
+                    .foregroundColor(Color("MainText").opacity(0.8))
+                    .fixedSize(horizontal: false, vertical: true)
+                    .lineSpacing(4)
+                Spacer()
+                Button(action: { onViewReflection?() }) {
+                    Text("View your weekly reflection →")
+                        .font(.subheadline).fontWeight(.semibold)
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 12)
@@ -135,27 +153,22 @@ private struct InsufficientDataCard: View {
                         .foregroundColor(Color("AccentCoral"))
                         .font(.system(size: 18, weight: .semibold))
                     Text("Cora's Insights")
-                        .font(.title3)
-                        .fontWeight(.bold)
+                        .font(.title3).fontWeight(.bold)
                         .foregroundColor(Color("MainText"))
                 }
-
                 Text("Helpful insights will appear here once you complete your first week of check-ins 💙")
                     .font(.subheadline)
                     .foregroundColor(Color("MainText").opacity(0.8))
                     .fixedSize(horizontal: false, vertical: true)
                     .lineSpacing(4)
-
                 Spacer()
             }
         }
     }
 }
 
-
 private struct CardShell<Content: View>: View {
     @ViewBuilder let content: Content
-
     var body: some View {
         content
             .padding(20)

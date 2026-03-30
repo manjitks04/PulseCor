@@ -104,10 +104,10 @@ class CoraCardViewModel: ObservableObject {
         // 1=Sun 2=Mon 3=Tue 4=Wed 5=Thu 6=Fri 7=Sat
 
         switch weekday {
-        case 2, 4, 5, 7:
+        case 2, 4, 5, 7: // Mon, Wed, Thu, Sat — tip
             cardType = .tip(sessionTip)
 
-        case 3, 6:
+        case 3, 6: // Tue, Fri — stat
             let lastWeek = recentCheckIns(checkIns)
             if lastWeek.count >= 7 {
                 cardType = .stat(computeSimpleStat(lastWeek))
@@ -115,9 +115,9 @@ class CoraCardViewModel: ObservableObject {
                 cardType = .insufficientData
             }
 
-        case 1:
+        case 1: // Sunday — weekly reflection
             let lastWeek = recentCheckIns(checkIns)
-            if lastWeek.count >= 4 {
+            if lastWeek.count >= 7 {
                 if !hasViewedWeeklyReflection {
                     cardType = .sundayTeaser(stat: computeSimpleStat(lastWeek))
                 } else {
@@ -137,15 +137,14 @@ class CoraCardViewModel: ObservableObject {
         return checkIns.filter { $0.isComplete && $0.date >= cutoff }
     }
 
-    /// TODO: replace this with a call to WF VM
     private func computeSimpleStat(_ checkIns: [DailyCheckIn]) -> String {
         let waterScores = checkIns.compactMap { waterScore($0.waterGlasses) }
         if !waterScores.isEmpty {
             let avg = Double(waterScores.reduce(0, +)) / Double(waterScores.count)
             if avg <= 1.5 {
-                return "Last week you averaged around \(waterLabel(avg)) of water a day. Small sips more often can make a big difference 💧"
+                return "This week you averaged around \(waterLabel(avg)) of water a day. Small sips more often can make a big difference!"
             } else if avg >= 3.0 {
-                return "Last week you averaged around \(waterLabel(avg)) of water a day — you're nailing your hydration 💧"
+                return "This week you averaged around \(waterLabel(avg)) of water a day, you're nailing your hydration!"
             }
         }
 
@@ -153,9 +152,9 @@ class CoraCardViewModel: ObservableObject {
         if !stressScores.isEmpty {
             let avg = Double(stressScores.reduce(0, +)) / Double(stressScores.count)
             if avg >= 2.4 {
-                return "Last week was a high-stress one — it happens. This week, try protecting even 10 minutes just for you 💛"
+                return "It's been a high-stress week, it's okay it happens. Try protecting even 10 minutes just for you 💛"
             } else if avg <= 1.3 {
-                return "You stayed mostly calm last week. That consistency quietly does a lot for your heart 💙"
+                return "You've stayed mostly calm this week. That consistency quietly does a lot for your heart 💙"
             }
         }
 
@@ -163,13 +162,13 @@ class CoraCardViewModel: ObservableObject {
         if !sleepScores.isEmpty {
             let avg = Double(sleepScores.reduce(0, +)) / Double(sleepScores.count)
             if avg < 2.0 {
-                return "Your sleep was on the lower side last week 😴 Even an extra 30 minutes can shift how you feel day to day."
+                return "Your sleep has been on the lower side this week. Even an extra 30 minutes can shift how you feel day to day."
             } else if avg >= 3.0 {
-                return "You got solid sleep last week 🌙 That's one of the best things you can do for your heart."
+                return "You've got solid sleep this week 🌙 That's one of the best things you can do for your heart."
             }
         }
 
-        return "You completed \(checkIns.count) check-ins last week 🌟 Keep that momentum going."
+        return "You've completed \(checkIns.count) check-ins this week 🌟 Keep that momentum going."
     }
 
     private func waterScore(_ intake: WaterIntake?) -> Int? {

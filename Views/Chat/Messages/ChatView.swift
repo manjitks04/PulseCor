@@ -2,8 +2,7 @@
 //  ChatView.swift
 //  PulseCor
 //
-//  Screen-level @Query for check-in status is acceptable here — ChatView is a tab root,
-//  not a reusable component. The result is passed down to HeroCheckInCard as a parameter.
+//  Screen-level @Query for check-in status, the result is passed down to HeroCheckInCard as a parameter.
 
 import SwiftUI
 import SwiftData
@@ -16,6 +15,7 @@ struct ChatView: View {
     private var checkIns: [DailyCheckIn]
 
     @StateObject private var cardViewModel = CoraCardViewModel()
+    @ObservedObject private var navManager = NavigationManager.shared
     @State private var showingReflection = false
 
     private var hasCheckedInToday: Bool {
@@ -66,6 +66,12 @@ struct ChatView: View {
             }
             .onChange(of: checkIns.count) {
                 cardViewModel.load(checkIns: checkIns)
+            }
+            .onReceive(navManager.$pendingWeeklyReflection) { pending in
+                if pending {
+                    showingReflection = true
+                    NavigationManager.shared.pendingWeeklyReflection = false
+                }
             }
             .fullScreenCover(isPresented: $showingReflection) {
                 WeeklyReflectionView(userStreak: currentStreak)

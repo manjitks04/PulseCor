@@ -34,22 +34,27 @@ class NotificationService: NSObject, UNUserNotificationCenterDelegate {
     ) {
         let id = response.notification.request.identifier
         let userInfo = response.notification.request.content.userInfo
-        
+
         if (id.hasPrefix("medication-") || id.hasPrefix("snooze-")),
            let medId = userInfo["medicationId"] as? String,
            let name = userInfo["medicationName"] as? String,
            let dosage = userInfo["dosage"] as? String,
            let time = userInfo["scheduledTime"] as? String {
 
-            UserDefaults.standard.set(medId,forKey: "pendingMedId")
-            UserDefaults.standard.set(name,forKey: "pendingMedName")
-            UserDefaults.standard.set(dosage,forKey: "pendingMedDosage")
-            UserDefaults.standard.set(time,forKey: "pendingMedTime")
+            UserDefaults.standard.set(medId,   forKey: "pendingMedId")
+            UserDefaults.standard.set(name,    forKey: "pendingMedName")
+            UserDefaults.standard.set(dosage,  forKey: "pendingMedDosage")
+            UserDefaults.standard.set(time,    forKey: "pendingMedTime")
         }
 
         Task { @MainActor in
-            if id == "daily-checkin" || id == "weekly-reflection" {
+            if id == "daily-checkin" {
                 NavigationManager.shared.pendingTab = .cora
+
+            } else if id == "weekly-reflection" {
+                NavigationManager.shared.pendingTab = .cora
+                NavigationManager.shared.pendingWeeklyReflection = true
+
             } else if id.hasPrefix("medication-") || id.hasPrefix("snooze-") {
                 if let medId = userInfo["medicationId"] as? String,
                    let medName = userInfo["medicationName"] as? String,
@@ -65,10 +70,7 @@ class NotificationService: NSObject, UNUserNotificationCenterDelegate {
                 NavigationManager.shared.pendingTab = .home
             }
         }
-
-        completionHandler()
     }
-
 
     func requestAuthorization() async -> Bool {
         do {
@@ -185,8 +187,8 @@ class NotificationService: NSObject, UNUserNotificationCenterDelegate {
         center.removePendingNotificationRequests(withIdentifiers: ["weekly-reflection"])
 
         let content = UNMutableNotificationContent()
-        content.title = "Weekly Reflection"
-        content.body = "Time to reflect on your week with Cora 🌸"
+        content.title = "Weekly Reflection is ready 🌸"
+        content.body = "Cora has your weekly summary waiting. Tap to see your insights."
         content.sound = .default
 
         var dateComponents = DateComponents()
@@ -207,5 +209,33 @@ class NotificationService: NSObject, UNUserNotificationCenterDelegate {
 
     func cancelWeeklyReflection() {
         UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: ["weekly-reflection"])
+    }
+
+    func scheduleGentleNudge(hour: Int, minute: Int) {
+        let center = UNUserNotificationCenter.current()
+        center.removePendingNotificationRequests(withIdentifiers: ["gentle-nudge"])
+
+        let content = UNMutableNotificationContent()
+        content.title = "Hey, don't forget to check in 💙"
+        content.body = "Cora's waiting to hear how your day went."
+        content.sound = .default
+
+        var dateComponents = DateComponents()
+        dateComponents.hour = hour
+        dateComponents.minute = minute
+
+        let trigger = UNCalendarNotificationTrigger(dateMatching: dateComponents, repeats: true)
+        let request = UNNotificationRequest(identifier: "gentle-nudge", content: content, trigger: trigger)
+        Task {
+            do {
+                try await center.add(request)
+            } catch {
+                print("NotificationService: error scheduling gentle nudge — \(error)")
+            }
+        }
+    }
+
+    func cancelGentleNudge() {
+        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: ["gentle-nudge"])
     }
 }
