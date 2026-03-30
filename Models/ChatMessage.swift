@@ -36,5 +36,4 @@ enum MessageSender: String, Codable {
 enum MessageType: String, Codable {
     case text = "text"
     case quickReply = "quick_reply"
-    case systemInfo = "system_info" // gentle nudges
 }

@@ -40,7 +40,12 @@ struct ContentView: View {
         .preferredColorScheme(isDarkMode ? .dark : .light)
         .task {
             healthManager.setup(context: modelContext)
-            _ = await NotificationService.shared.requestAuthorization()
+            let granted = await NotificationService.shared.requestAuthorization()
+            
+            if granted {
+                NotificationService.shared.scheduleDailyCheckIn(hour: 11, minute: 0, isAM: true)
+                NotificationService.shared.scheduleWeeklyReflection(hour: 18, minute: 0, isAM: false)
+            }
             
             if let pending = navManager.pendingTab {
                 navManager.selectedTab = pending

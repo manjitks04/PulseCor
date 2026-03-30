@@ -55,6 +55,9 @@ class NotificationService: NSObject, UNUserNotificationCenterDelegate {
                 NavigationManager.shared.pendingTab = .cora
                 NavigationManager.shared.pendingWeeklyReflection = true
 
+            } else if id == "gentle-nudge" {
+                NavigationManager.shared.pendingTab = .cora
+
             } else if id.hasPrefix("medication-") || id.hasPrefix("snooze-") {
                 if let medId = userInfo["medicationId"] as? String,
                    let medName = userInfo["medicationName"] as? String,
@@ -211,7 +214,7 @@ class NotificationService: NSObject, UNUserNotificationCenterDelegate {
         UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: ["weekly-reflection"])
     }
 
-    func scheduleGentleNudge(hour: Int, minute: Int) {
+    func scheduleGentleNudge(fireAt date: Date) {
         let center = UNUserNotificationCenter.current()
         center.removePendingNotificationRequests(withIdentifiers: ["gentle-nudge"])
 
@@ -220,17 +223,16 @@ class NotificationService: NSObject, UNUserNotificationCenterDelegate {
         content.body = "Cora's waiting to hear how your day went."
         content.sound = .default
 
-        var dateComponents = DateComponents()
-        dateComponents.hour = hour
-        dateComponents.minute = minute
-
-        let trigger = UNCalendarNotificationTrigger(dateMatching: dateComponents, repeats: true)
+        let trigger = UNCalendarNotificationTrigger(
+            dateMatching: Calendar.current.dateComponents([.year, .month, .day, .hour, .minute], from: date),
+            repeats: false
+        )
         let request = UNNotificationRequest(identifier: "gentle-nudge", content: content, trigger: trigger)
         Task {
             do {
                 try await center.add(request)
             } catch {
-                print("NotificationService: error scheduling gentle nudge — \(error)")
+                print("NotificationService: gentle nudge error — \(error)")
             }
         }
     }

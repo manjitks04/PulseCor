@@ -26,6 +26,7 @@ struct SettingsView: View {
     @AppStorage("weeklyReflectionEnabled") private var weeklyReflectionEnabled: Bool = true
     @AppStorage("weeklyReflectionHour") private var weeklyReflectionHour: Int = 18
     @AppStorage("weeklyReflectionMinute") private var weeklyReflectionMinute: Int = 0
+    @AppStorage("gentleNudgeEnabled") private var gentleNudgeEnabled: Bool = true
 
     @StateObject private var settingsViewModel = SettingsViewModel()
     @StateObject private var medicationViewModel = MedicationViewModel()
@@ -222,12 +223,33 @@ struct SettingsView: View {
                             }
                             if weeklyReflectionEnabled {
                                 VStack(alignment: .leading, spacing: 8) {
-                                    Text("Every Sunday at").font(.caption).foregroundColor(Color("MainText").opacity(0.7))
+                                    Text("Every Sunday at")
+                                        .font(.caption)
+                                        .foregroundColor(Color("MainText").opacity(0.7))
                                     TimePickerRow(hour: $weeklyReflectionHour, minute: $weeklyReflectionMinute) {
                                         scheduleWeeklyReflectionNotification()
                                     }
                                 }
                             }
+                        }
+                        .padding().background(Color("CardBG")).cornerRadius(12)
+                        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.gray.opacity(0.2), lineWidth: 1))
+
+                        VStack(spacing: 12) {
+                            HStack {
+                                Text("Gentle Nudge").font(.body).foregroundColor(Color("MainText"))
+                                Spacer()
+                                Toggle("", isOn: $gentleNudgeEnabled).labelsHidden().tint(Color("AccentPink"))
+                                    .onChange(of: gentleNudgeEnabled) { _, newValue in
+                                        if !newValue {
+                                            NotificationService.shared.cancelGentleNudge()
+                                        }
+                                    }
+                            }
+                            Text("Reminds you at 9:30pm if you haven't checked in for 2 days")
+                                .font(.caption)
+                                .foregroundColor(Color("MainText").opacity(0.5))
+                                .frame(maxWidth: .infinity, alignment: .leading)
                         }
                         .padding().background(Color("CardBG")).cornerRadius(12)
                         .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.gray.opacity(0.2), lineWidth: 1))

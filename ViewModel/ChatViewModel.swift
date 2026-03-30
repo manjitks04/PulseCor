@@ -170,8 +170,23 @@ class ChatViewModel: ObservableObject {
             )
             completeConversation(flow: flow)
             checkBadgeUnlock(newStreak: streak)
+            scheduleGentleNudgeIfEnabled()
         } catch {
             await sendCoraMessage(content: "I had a little trouble saving your check-in. 💙")
+        }
+    }
+
+    private func scheduleGentleNudgeIfEnabled() {
+        guard UserDefaults.standard.bool(forKey: "gentleNudgeEnabled") else { return }
+        // Schedule nudge for 9:30pm two days from now
+        // If user checks in before it fires, it gets cancelled and rescheduled
+        if let fireDate = Calendar.current.date(byAdding: .day, value: 2, to: Date()) {
+            var components = Calendar.current.dateComponents([.year, .month, .day], from: fireDate)
+            components.hour = 21
+            components.minute = 30
+            if let nudgeDate = Calendar.current.date(from: components) {
+                NotificationService.shared.scheduleGentleNudge(fireAt: nudgeDate)
+            }
         }
     }
 
@@ -179,8 +194,6 @@ class ChatViewModel: ObservableObject {
         guard let badge = allBadgeDefinitions.first(where: { $0.requiredDays == newStreak }) else { return }
         unlockedBadge = badge
     }
-    
-
 
     private func moveToNextStep(_ step: ConversationStep, flow: ConversationFlow) {
         flow.currentStep = step
@@ -228,10 +241,10 @@ class ChatViewModel: ObservableObject {
     func restoreQuickRepliesForCurrentStep() {
         guard let flow = currentFlow else { return }
         switch flow.currentStep {
-        case .greeting:       currentQuickReplies = ["Yes, let's do it!", "Not right now"]
+        case .greeting:        currentQuickReplies = ["Yes, let's do it!", "Not right now"]
         case .askSleepQuality: currentQuickReplies = SleepQuality.allCases.map { $0.rawValue }
         case .askSleepHours:  currentQuickReplies = SleepHours.allCases.map { $0.rawValue }
-        case .askWater:       currentQuickReplies = WaterIntake.allCases.map { $0.rawValue }
+        case .askWater: currentQuickReplies = WaterIntake.allCases.map { $0.rawValue }
         case .askStress:      currentQuickReplies = StressLevel.allCases.map { $0.rawValue }
         case .askEnergy:      currentQuickReplies = EnergyLevel.allCases.map { $0.rawValue }
         case .askActivity:    currentQuickReplies = ActivityLevel.allCases.map { $0.rawValue }
