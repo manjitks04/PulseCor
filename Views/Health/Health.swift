@@ -6,11 +6,12 @@ import SwiftUI
 import SwiftData
 
 struct HealthView: View {
+    let stepEntries: [StepEntry]
+    let heartRateEntries: [HeartRateEntry]
+    let restingEntries: [RestingHeartRateEntry]
+    let hrvEntries: [HRVEntry]
+
     @Environment(\.modelContext) private var context
-    @Query(sort: \StepEntry.date, order: .reverse) private var stepEntries: [StepEntry]
-    @Query(sort: \HeartRateEntry.date, order: .reverse) private var heartRateEntries: [HeartRateEntry]
-    @Query(sort: \RestingHeartRateEntry.date, order: .reverse) private var restingEntries: [RestingHeartRateEntry]
-    @Query(sort: \HRVEntry.date, order: .reverse) private var hrvEntries: [HRVEntry]
     @Query private var users: [User]
 
     @StateObject private var viewModel = HealthViewModel()
@@ -46,9 +47,9 @@ struct HealthView: View {
                             icon: "figure.walk",
                             title: "Steps",
                             value: stepEntries.first.map { "\(Int($0.count))" } ?? "--",
-                            unit: "steps this week",
+                            unit: "steps today",
                             gradientColors: [Color("AccentCoral"), Color("AccentPink")],
-                            infoText: "Total steps counted by your iPhone or Apple Watch over the last 7 days. Read from Apple Health."
+                            infoText: "Total steps counted by your iPhone or Apple Watch in the last 24 hours. Read from Apple Health."
                         )
 
                         HealthMetricCard(
@@ -96,15 +97,22 @@ struct HealthView: View {
             .navigationBarHidden(true)
             .task {
                 viewModel.setContext(context)
-                await viewModel.syncIfNeeded(
-                    healthSyncEnabled: healthSyncEnabled,
-                    lastSyncDate: stepEntries.first?.date
-                )
+                if !OnboardingViewModel.shared.isActive {
+                    await viewModel.syncIfNeeded(
+                        healthSyncEnabled: healthSyncEnabled,
+                        lastSyncDate: stepEntries.first?.date
+                    )
+                }
             }
         }
     }
 }
 
 #Preview {
-    HealthView()
+    HealthView(
+        stepEntries: [],
+        heartRateEntries: [],
+        restingEntries: [],
+        hrvEntries: []
+    )
 }

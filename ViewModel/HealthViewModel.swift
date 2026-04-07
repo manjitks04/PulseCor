@@ -35,7 +35,7 @@ class HealthViewModel: ObservableObject {
             isSyncing = false
             return
         }
-        HealthKitService.shared.syncWeeklySummary(context: modelContext)
+        await HealthKitService.shared.syncWeeklySummary(context: modelContext)
         try? await Task.sleep(for: .seconds(2))
         isSyncing = false
     }

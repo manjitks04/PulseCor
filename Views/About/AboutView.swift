@@ -144,12 +144,6 @@ struct AboutView: View {
                         Spacer(minLength: 16)
                     }
                     .padding(.horizontal, 14)
-                    
-                    if let currentUser = users.first {
-                        ProfileButton(user: currentUser)
-                            .padding(.trailing, 16)
-                            .padding(.top, 20)
-                    }
                 }
             }
             .background(Color("MainBG"))

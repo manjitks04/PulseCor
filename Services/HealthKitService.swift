@@ -2,8 +2,6 @@
 //  HealthKitService.swift
 //  PulseCor
 //
-//  Core integration of HealthKit — converted to async/await
-//
 import SwiftData
 import HealthKit
 
@@ -11,8 +9,9 @@ class HealthKitService {
     static let shared = HealthKitService()
     let healthStore = HKHealthStore()
 
-    private init() {}
+    private var syncDebounceTask: Task<Void, Never>?
 
+    private init() {}
 
     func requestAuth() async -> (Bool, Error?) {
         let steps = HKObjectType.quantityType(forIdentifier: .stepCount)!
@@ -27,11 +26,66 @@ class HealthKitService {
             }
         }
     }
-    
-    //Wrapped with withCheckedContinuation
+
+    func startObserving(context: ModelContext) {
+        let identifiers: [HKQuantityTypeIdentifier] = [
+            .stepCount, .heartRate, .restingHeartRate, .heartRateVariabilitySDNN
+        ]
+
+        for identifier in identifiers {
+            let type = HKObjectType.quantityType(forIdentifier: identifier)!
+
+            let query = HKObserverQuery(sampleType: type, predicate: nil) { [weak self] _, _, error in
+                guard error == nil, let self else { return }
+                self.scheduleDebouncedSync(context: context)
+            }
+            healthStore.execute(query)
+
+            Task {
+                await withCheckedContinuation { continuation in
+                    self.healthStore.enableBackgroundDelivery(for: type, frequency: .hourly) { _, _ in
+                        continuation.resume()
+                    }
+                }
+            }
+        }
+    }
+
+    private func scheduleDebouncedSync(context: ModelContext) {
+        syncDebounceTask?.cancel()
+        syncDebounceTask = Task {
+            try? await Task.sleep(for: .seconds(2))
+            guard !Task.isCancelled else { return }
+            await syncWeeklySummary(context: context)
+        }
+    }
+
+    func syncWeeklySummary(context: ModelContext) async {
+        let calendar = Calendar.current
+        guard let sevenDaysAgo = calendar.date(byAdding: .day, value: -7, to: Date()) else { return }
+
+        await MainActor.run {
+            try? context.delete(model: StepEntry.self)
+            try? context.delete(model: HeartRateEntry.self)
+            try? context.delete(model: RestingHeartRateEntry.self)
+            try? context.delete(model: HRVEntry.self)
+            try? context.save()
+        }
+
+        async let steps: () = fetchSteps(since: sevenDaysAgo, context: context)
+        async let hr: () = fetchHeartRate(since: sevenDaysAgo, context: context)
+        async let rhr: () = fetchHeartRestingRate(since: sevenDaysAgo, context: context)
+        async let hrv: () = fetchHeartRateVar(since: sevenDaysAgo, context: context)
+
+        _ = await (steps, hr, rhr, hrv)
+    }
+
     func fetchSteps(since date: Date, context: ModelContext) async {
         let type = HKObjectType.quantityType(forIdentifier: .stepCount)!
-        let predicate = HKQuery.predicateForSamples(withStart: date, end: Date(), options: .strictStartDate)
+        
+        let calendar = Calendar.current
+            let startOfDay = calendar.startOfDay(for: Date())
+            let predicate = HKQuery.predicateForSamples(withStart: startOfDay, end: Date(), options: .strictStartDate)
 
         let result: HKStatistics? = await withCheckedContinuation { continuation in
             let query = HKStatisticsQuery(
@@ -45,13 +99,12 @@ class HealthKitService {
         }
 
         guard let sum = result?.sumQuantity() else {
-            print("HealthKitService: no step data found for the week — check HealthKit permissions")
+            print("HealthKitService: no step data found — check HealthKit permissions")
             return
         }
 
         await MainActor.run {
-            let entry = StepEntry(count: sum.doubleValue(for: .count()), date: Date())
-            context.insert(entry)
+            context.insert(StepEntry(count: sum.doubleValue(for: .count()), date: Date()))
             try? context.save()
         }
     }
@@ -125,49 +178,6 @@ class HealthKitService {
         await MainActor.run {
             context.insert(HRVEntry(ms: ms, date: Date()))
             try? context.save()
-        }
-    }
-
-    func syncWeeklySummary(context: ModelContext) {
-        let calendar = Calendar.current
-        guard let sevenDaysAgo = calendar.date(byAdding: .day, value: -7, to: Date()) else { return }
-
-        // Clears old entries before re-fetching
-        try? context.delete(model: StepEntry.self)
-        try? context.delete(model: HeartRateEntry.self)
-        try? context.delete(model: RestingHeartRateEntry.self)
-        try? context.delete(model: HRVEntry.self)
-
-        Task {
-            await fetchSteps(since: sevenDaysAgo, context: context)
-            await fetchHeartRate(since: sevenDaysAgo, context: context)
-            await fetchHeartRestingRate(since: sevenDaysAgo, context: context)
-            await fetchHeartRateVar(since: sevenDaysAgo, context: context)
-        }
-    }
-
-    func startObserving(context: ModelContext) {
-        let identifiers: [HKQuantityTypeIdentifier] = [
-            .stepCount, .heartRate, .restingHeartRate, .heartRateVariabilitySDNN
-        ]
-
-        for identifier in identifiers {
-            let type = HKObjectType.quantityType(forIdentifier: identifier)!
-
-            let query = HKObserverQuery(sampleType: type, predicate: nil) { [weak self] _, _, error in
-                guard error == nil else { return }
-                self?.syncWeeklySummary(context: context)
-            }
-            healthStore.execute(query)
-
-            // enableBackgroundDelivery keeps it off the main thread
-            Task {
-                await withCheckedContinuation { continuation in
-                    self.healthStore.enableBackgroundDelivery(for: type, frequency: .hourly) { _, _ in
-                        continuation.resume()
-                    }
-                }
-            }
         }
     }
 }
