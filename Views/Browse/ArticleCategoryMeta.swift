@@ -56,7 +56,7 @@ extension ArticleCategory {
         case .generalWellness:
             return [
                 CategoryStat(value: "150min", label: "weekly activity goal"),
-                CategoryStat(value: "2L", label: "water recommended daily"),
+                CategoryStat(value: "2L", label: "daily water intake"),
                 CategoryStat(value: "5x", label: "fruit & veg per day")
             ]
         }
