@@ -126,13 +126,13 @@ struct DashboardView: View {
                                 DashboardArticleCard(article: article)
                             }
                         }
-                        .padding(.horizontal, 15)
+                        .padding(.horizontal, 50)
                     }
                 }
                 .overlay(alignment: .topTrailing) {
                     if let currentUser = users.first {
                         ProfileButton(user: currentUser)
-                            .padding(.trailing, 38)
+                            .padding(.trailing, 45)
                             .padding(.top, 20)
                     }
                 }
@@ -249,7 +249,7 @@ struct DashboardArticleCard: View {
                     Image(imageName)
                         .resizable()
                         .aspectRatio(contentMode: .fill)
-                        .frame(width: 130, height: 180)
+                        .frame(width: 110, height: 160)
                         .clipped()
                 } else {
                     Color.gray.opacity(0.3).frame(width: 130, height: 180)
@@ -261,7 +261,7 @@ struct DashboardArticleCard: View {
                     .lineLimit(nil)
                     .padding(12)
             }
-            .frame(width: 130, height: 180)
+            .frame(width: 110, height: 160)
             .cornerRadius(16)
         }
         .buttonStyle(PlainButtonStyle())
