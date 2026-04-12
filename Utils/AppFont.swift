@@ -2,7 +2,6 @@
 //  AppFont.swift
 //  PulseCor
 //
-//  Created by Manjit Somal on 17/02/2026.
 //
 //helps accessibility needs by keeping fonts relative to users iOS settings
 
