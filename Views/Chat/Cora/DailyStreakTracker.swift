@@ -12,25 +12,22 @@ struct DailyStreakTracker: View {
     var body: some View {
         let displayDay = currentDay == 0 ? 0 : currentDay % 7 == 0 ? 7 : currentDay % 7
 
-        VStack(spacing: 16) {
+        VStack(spacing: 12) {
             HStack {
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: 3) {
                     Text("Daily check in")
-                        .font(.title3)
-                        .fontWeight(.bold)
+                        .font(.appSectionHeaderSemibold)
                         .foregroundColor(Color("MainText"))
 
-                    Text(currentDay >= 7 ?
-                         "Congratulations for achieving a 7 day streak! Your badge will show on your profile!" :
-                         "Achieve a 7 day streak to unlock a special badge!")
-                        .font(.subheadline)
+                    Text(currentDay == 0 ? "Achieve a 7 day streak to unlock a special badge!" : currentDay < 7  ? "Keep going — you're \(7 - currentDay) day\(7 - currentDay != 1 ? "s" : "") away from your first badge!" : "Keep going to unlock more badges!")
+                        .font(.appBody)
                         .foregroundColor(Color("MainText").opacity(0.7))
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 Spacer()
             }
 
-            HStack(spacing: 8) {
+            HStack(spacing: 6) {
                 ForEach(1...7, id: \.self) { day in
                     DayCard(day: day, reward: rewards[day - 1], isCompleted: day <= displayDay, isCurrent: day == displayDay)
                 }
@@ -50,20 +47,20 @@ struct DailyStreakTracker: View {
 
             HStack {
                 Text("Current streak: \(currentDay) day\(currentDay != 1 ? "s" : "")")
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
+                    .font(.appBodySemibold)
                     .foregroundColor(Color("MainText"))
                 Spacer()
                 let earnedPoints = rewards.prefix(min(displayDay, 7)).reduce(0, +)
                 Text("\(earnedPoints)/\(rewards.reduce(0, +)) pts")
-                    .font(.subheadline)
+                    .font(.appBody)
                     .foregroundColor(Color("MainText").opacity(0.6))
             }
         }
-        .padding(20)
+        .padding(16)
         .background(Color("CardBG"))
         .cornerRadius(20)
         .overlay(RoundedRectangle(cornerRadius: 20).strokeBorder(Color.gray.opacity(0.2), lineWidth: 1))
         .shadow(color: .black.opacity(0.05), radius: 8, y: 4)
+        .padding(.horizontal, 20)
     }
 }

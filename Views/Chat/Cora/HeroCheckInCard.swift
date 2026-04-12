@@ -2,7 +2,7 @@
 //  HeroCheckInCard.swift
 //  PulseCor
 //
-//  Receives hasCheckedInToday as a parameter 
+//  Receives hasCheckedInToday as a parameter
 //  The parent View (ChatView) provides the value via @Query at screen level.
 
 import SwiftUI
@@ -13,27 +13,16 @@ struct HeroCheckInCard: View {
 
     var body: some View {
         ZStack(alignment: .leading) {
-            Circle()
-                .fill(LinearGradient(
-                    colors: [Color("AccentCoral").opacity(0.8), Color("AccentPink").opacity(0.6)],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                ))
-                .frame(width: 280, height: 280)
-                .offset(x: -40, y: -20)
-                .blur(radius: 2)
-
             VStack(alignment: .leading, spacing: 12) {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Hi there, \(userName)")
                         .font(.appHeroCardTitle)
                         .foregroundColor(.white)
-
                     Text("Ready to check in with Cora?")
                         .font(.appTitle2Semibold)
                         .foregroundColor(.white)
                 }
-                .padding(.top, 20)
+                .padding(.top, 45)
                 .padding(.leading, 20)
 
                 NavigationLink(destination: destinationView()) {
@@ -49,14 +38,28 @@ struct HeroCheckInCard: View {
                 .padding(.bottom, 20)
             }
         }
-        .frame(height: 200)
-        .frame(maxWidth: .infinity)
-        .background(LinearGradient(
-            colors: [Color("AccentCoral"), Color("AccentPink")],
-            startPoint: .topLeading,
-            endPoint: .bottomTrailing
-        ))
+        .frame(height: 180)
+        .background(
+            ZStack(alignment: .topLeading) {
+                LinearGradient(
+                    colors: [Color("AccentCoral"), Color("AccentPink")],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+                Circle()
+                    .fill(LinearGradient(
+                        colors: [Color("AccentCoral").opacity(0.8), Color("AccentPink").opacity(0.6)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ))
+                    .frame(width: 280, height: 280)
+                    .offset(x: -40, y: -20)
+                    .blur(radius: 2)
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 24))
+        )
         .cornerRadius(24)
+        .padding(.horizontal, 20)
     }
 
     @ViewBuilder

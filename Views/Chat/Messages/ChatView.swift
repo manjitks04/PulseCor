@@ -1,89 +1,198 @@
+////
+////  ChatView.swift
+////  PulseCor
+////
+//import SwiftUI
+//import SwiftData
+//
+//struct ChatView: View {
+//    @Query private var users: [User]
+//
+//    @Query(filter: #Predicate<DailyCheckIn> { $0.isComplete == true },
+//           sort: \DailyCheckIn.date, order: .reverse)
+//    private var checkIns: [DailyCheckIn]
+//
+//    @StateObject private var cardViewModel = CoraCardViewModel()
+//    @ObservedObject private var navManager = NavigationManager.shared
+//    @State private var showingReflection = false
+//
+//    private var hasCheckedInToday: Bool {
+//        let today = Calendar.current.startOfDay(for: Date())
+//        return checkIns.first.map {
+//            Calendar.current.startOfDay(for: $0.date) == today
+//        } ?? false
+//    }
+//
+//    private var currentStreak: Int {
+//        users.first?.currentStreak ?? 0
+//    }
+//
+//    var body: some View {
+//        NavigationStack {
+//            ZStack(alignment: .topTrailing) {
+//                Color("MainBG").ignoresSafeArea()
+//
+//                ScrollViewReader { proxy in
+//                    ScrollView(showsIndicators: false) {
+//                        VStack(spacing: 16) {
+//                            HeroCheckInCard(
+//                                userName: users.first?.name ?? "there",
+//                                hasCheckedInToday: hasCheckedInToday
+//                            )
+//                            DailyStreakTracker(currentDay: currentStreak)
+//                            CoraCardView(
+//                                cardType: cardViewModel.cardType,
+//                                onViewReflection: { showingReflection = true }
+//                            )
+//                            .id("cora-card")
+//                            ChatOnboardingSpacerAdapter()
+//                        }
+//                        .padding(.top, 85)
+//                        .padding(.bottom, 120)
+//                    }
+//                    
+//                    .background(ChatOnboardingScrollAdapter(proxy: proxy))
+//                    .onAppear { cardViewModel.load(checkIns: checkIns) }
+//                    .onChange(of: checkIns.count) { cardViewModel.load(checkIns: checkIns) }
+//                    .onReceive(navManager.$pendingWeeklyReflection) { pending in
+//                        if pending {
+//                            let cutoff = Calendar.current.date(byAdding: .day, value: -7, to: Date()) ?? Date()
+//                            let recentCount = checkIns.filter { $0.date >= cutoff }.count
+//                            if recentCount >= 4 { showingReflection = true }
+//                            NavigationManager.shared.pendingWeeklyReflection = false
+//                        }
+//                    }
+//                }
+//            }
+//            .navigationBarHidden(true)
+//            .fullScreenCover(isPresented: $showingReflection) {
+//                WeeklyReflectionView(userStreak: currentStreak)
+//            }
+//        }
+//    }
+//}
+//
+//private struct ChatOnboardingSpacerAdapter: View {
+//    @ObservedObject private var onboarding = OnboardingViewModel.shared
+//
+//    var body: some View {
+//        if onboarding.isActive {
+//            Color.clear.frame(height: 300)
+//        } else {
+//            EmptyView()
+//        }
+//    }
+//}
+//
+//private struct ChatOnboardingScrollAdapter: View {
+//    @ObservedObject private var onboarding = OnboardingViewModel.shared
+//    let proxy: ScrollViewProxy
+//
+//    var body: some View {
+//        Color.clear
+//            .onChange(of: onboarding.currentStep) { _, step in
+//                if step == .coraCard {
+//                    withAnimation { proxy.scrollTo("cora-card", anchor: .top) }
+//                }
+//            }
+//    }
+//}
+//
 //
 //  ChatView.swift
 //  PulseCor
 //
-//  Screen-level @Query for check-in status, the result is passed down to HeroCheckInCard as a parameter.
-
 import SwiftUI
 import SwiftData
 
 struct ChatView: View {
-    @Query private var users: [User]
+    @Environment(\.modelContext) private var modelContext
 
     @Query(filter: #Predicate<DailyCheckIn> { $0.isComplete == true },
            sort: \DailyCheckIn.date, order: .reverse)
     private var checkIns: [DailyCheckIn]
 
-    @StateObject private var cardViewModel = CoraCardViewModel()
+    @Query private var users: [User]
+
+    @StateObject private var viewModel = ChatScreenViewModel()
     @ObservedObject private var navManager = NavigationManager.shared
-    @State private var showingReflection = false
-
-    private var hasCheckedInToday: Bool {
-        let today = Calendar.current.startOfDay(for: Date())
-        return checkIns.first.map {
-            Calendar.current.startOfDay(for: $0.date) == today
-        } ?? false
-    }
-
-    private var currentStreak: Int {
-        users.first?.currentStreak ?? 0
-    }
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                ZStack(alignment: .topTrailing) {
-                    VStack(spacing: 24) {
-                        HeroCheckInCard(
-                            userName: users.first?.name ?? "there",
-                            hasCheckedInToday: hasCheckedInToday
-                        )
-                        .padding(.top, 15)
+            ZStack(alignment: .topTrailing) {
+                Color("MainBG").ignoresSafeArea()
 
-                        DailyStreakTracker(currentDay: currentStreak)
-
-                        CoraCardView(
-                            cardType: cardViewModel.cardType,
-                            onViewReflection: { showingReflection = true }
-                        )
-
-                        Spacer(minLength: 20)
+                ScrollViewReader { proxy in
+                    ScrollView(showsIndicators: false) {
+                        VStack(spacing: 16) {
+                            HeroCheckInCard(
+                                userName: users.first?.name ?? "there",
+                                hasCheckedInToday: viewModel.hasCheckedInToday
+                            )
+                            DailyStreakTracker(currentDay: viewModel.currentStreak)
+                            CoraCardView(
+                                cardType: viewModel.cardType,
+                                onViewReflection: { viewModel.shouldShowReflection = true }
+                            )
+                            .id("cora-card")
+                            ChatOnboardingSpacerAdapter()
+                        }
+                        .padding(.top, 85)
+                        .padding(.bottom, 120)
                     }
-                    .padding(.horizontal, 16)
-                    .padding(.top, 75)
-
-                    if let currentUser = users.first {
-                        ProfileButton(user: currentUser)
-                            .padding(.trailing, 16)
-                            .padding(.top, 20)
+                    .background(ChatOnboardingScrollAdapter(proxy: proxy))
+                    .onAppear {
+                        viewModel.setContext(modelContext)
+                        viewModel.loadCards(checkIns: checkIns)
+                    }
+                    .onChange(of: checkIns.count) {
+                        viewModel.loadData()
+                        viewModel.loadCards(checkIns: checkIns)
+                    }
+                    .onReceive(navManager.$pendingWeeklyReflection) { pending in
+                        if pending {
+                            viewModel.handlePendingWeeklyReflection(checkIns: checkIns)
+                        }
                     }
                 }
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(Color("MainBG"))
-            .onAppear {
-                cardViewModel.load(checkIns: checkIns)
-            }
-            .onChange(of: checkIns.count) {
-                cardViewModel.load(checkIns: checkIns)
-            }
-            .onReceive(navManager.$pendingWeeklyReflection) { pending in
-                if pending {
-                    showingReflection = true
-                    NavigationManager.shared.pendingWeeklyReflection = false
+
+                if let currentUser = users.first {
+                    ProfileButton(user: currentUser)
+                        .padding(.trailing, 16)
+                        .padding(.top, 20)
                 }
             }
-            .fullScreenCover(isPresented: $showingReflection) {
-                WeeklyReflectionView(userStreak: currentStreak)
+            .navigationBarHidden(true)
+            .fullScreenCover(isPresented: $viewModel.shouldShowReflection) {
+                WeeklyReflectionView(userStreak: viewModel.currentStreak)
             }
         }
     }
 }
 
-#Preview {
-    let config = ModelConfiguration(isStoredInMemoryOnly: true)
-    let container = try! ModelContainer(for: User.self, DailyCheckIn.self, configurations: config)
-    let sampleUser = User(name: "Preview User", currentStreak: 5, longestStreak: 10)
-    container.mainContext.insert(sampleUser)
-    return ChatView().modelContainer(container)
+private struct ChatOnboardingSpacerAdapter: View {
+    @ObservedObject private var onboarding = OnboardingViewModel.shared
+
+    var body: some View {
+        if onboarding.isActive {
+            Color.clear.frame(height: 300)
+        } else {
+            EmptyView()
+        }
+    }
 }
+
+private struct ChatOnboardingScrollAdapter: View {
+    @ObservedObject private var onboarding = OnboardingViewModel.shared
+    let proxy: ScrollViewProxy
+
+    var body: some View {
+        Color.clear
+            .onChange(of: onboarding.currentStep) { _, step in
+                if step == .coraCard {
+                    withAnimation { proxy.scrollTo("cora-card", anchor: .top) }
+                }
+            }
+    }
+}
+

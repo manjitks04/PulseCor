@@ -1,7 +1,7 @@
 //
 //  CoraCardView.swift
 //  PulseCor
-//
+
 
 import SwiftUI
 
@@ -49,6 +49,7 @@ private struct TipCard: View {
                     .foregroundColor(Color("MainText").opacity(0.45))
             }
         }
+        .padding(.horizontal, 20)
     }
 }
 
@@ -73,6 +74,7 @@ private struct StatCard: View {
                 Spacer()
             }
         }
+        .padding(.horizontal, 20)
     }
 }
 
@@ -107,6 +109,7 @@ private struct SundayTeaserCard: View {
                 }
             }
         }
+        .padding(.horizontal, 20)
     }
 }
 
@@ -141,6 +144,7 @@ private struct SundayTopStatCard: View {
                 }
             }
         }
+        .padding(.horizontal, 20)
     }
 }
 
@@ -164,6 +168,7 @@ private struct InsufficientDataCard: View {
                 Spacer()
             }
         }
+        .padding(.horizontal, 20)
     }
 }
 
@@ -171,8 +176,8 @@ private struct CardShell<Content: View>: View {
     @ViewBuilder let content: Content
     var body: some View {
         content
-            .padding(20)
-            .frame(maxWidth: .infinity, minHeight: 130, alignment: .topLeading)
+            .padding(16)
+            .frame(maxWidth: .infinity, minHeight: 100, alignment: .topLeading)
             .background(Color("CardBG"))
             .cornerRadius(20)
             .overlay(RoundedRectangle(cornerRadius: 20).strokeBorder(Color.gray.opacity(0.2), lineWidth: 1))

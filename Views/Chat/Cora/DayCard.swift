@@ -2,7 +2,6 @@
 //  DayCard.swift
 //  PulseCor
 //
-//
 import SwiftUI
 import SwiftData
 
@@ -11,7 +10,7 @@ struct DayCard: View {
     let reward: Int
     let isCompleted: Bool
     let isCurrent: Bool
-    
+
     var body: some View {
         VStack(spacing: 6) {
             ZStack {
@@ -19,8 +18,8 @@ struct DayCard: View {
                     .fill(isCompleted ?
                           LinearGradient(colors: [Color("AccentCoral"), Color("AccentPink")], startPoint: .topLeading, endPoint: .bottomTrailing) :
                           LinearGradient(colors: [Color.gray.opacity(0.3), Color.gray.opacity(0.3)], startPoint: .topLeading, endPoint: .bottomTrailing))
-                    .frame(width: 44, height: 44)
-                
+                    .frame(width: 36, height: 36)
+
                 if day == 7 {
                     Text(isCompleted ? "👑" : "🎁").font(.title3)
                 } else if isCompleted {
@@ -33,7 +32,7 @@ struct DayCard: View {
             }
             .scaleEffect(isCurrent ? 1.1 : 1.0)
             .animation(.spring(response: 0.3), value: isCurrent)
-            
+
             Text("Day\(day)")
                 .font(.caption)
                 .fontWeight(isCompleted ? .semibold : .regular)
@@ -41,3 +40,4 @@ struct DayCard: View {
         }
     }
 }
+
