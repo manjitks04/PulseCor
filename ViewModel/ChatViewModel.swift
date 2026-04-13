@@ -147,6 +147,37 @@ class ChatViewModel: ObservableObject {
         }
     }
 
+//    private func completeCheckIn(flow: ConversationFlow) async {
+//        guard let modelContext else { return }
+//        let checkIn = DailyCheckIn(
+//            userId: 1,
+//            date: Date(),
+//            sleepQuality: SleepQuality(rawValue: flow.tempData["sleepQuality"] ?? ""),
+//            sleepHours: SleepHours(rawValue: flow.tempData["sleepHours"] ?? ""),
+//            waterGlasses: WaterIntake(rawValue: flow.tempData["water"] ?? ""),
+//            stressLevel: StressLevel(rawValue: flow.tempData["stress"] ?? ""),
+//            energyLevel: EnergyLevel(rawValue: flow.tempData["energy"] ?? ""),
+//            activityLevel: ActivityLevel(rawValue: flow.tempData["activity"] ?? ""),
+//            isComplete: true
+//        )
+//
+//        do {
+//            modelContext.insert(checkIn)
+//            let streak = try StreakService.updateStreak(modelContext: modelContext)
+//            try modelContext.save()
+//
+//            await sendCoraMessage(
+//                content: "Perfect, you're all done for the day! You're on a \(streak)-day streak! 🎉 See you tomorrow!"
+//            )
+//
+//            completeConversation(flow: flow)
+//            checkBadgeUnlock(newStreak: streak)
+//            scheduleGentleNudgeIfEnabled()
+//        } catch {
+//            await sendCoraMessage(content: "I had a little trouble saving your check-in. 💙")
+//        }
+//    }
+    
     private func completeCheckIn(flow: ConversationFlow) async {
         guard let modelContext else { return }
         let checkIn = DailyCheckIn(
@@ -164,15 +195,25 @@ class ChatViewModel: ObservableObject {
         do {
             modelContext.insert(checkIn)
             let streak = try StreakService.updateStreak(modelContext: modelContext)
-            try modelContext.save()
 
+            // ✅ Send final message BEFORE saving — @Query hasn't updated yet
             await sendCoraMessage(
                 content: "Perfect, you're all done for the day! You're on a \(streak)-day streak! 🎉 See you tomorrow!"
             )
 
-            completeConversation(flow: flow)
+            // ✅ Badge fires while user is still reading the message
             checkBadgeUnlock(newStreak: streak)
+
+            // ✅ Mark flow complete in memory only — no save yet so NavStack stays put
+            flow.isComplete = true
+            flow.completedAt = Date()
+            currentFlow = nil
+
+            // ✅ Single save at the very end — @Query updates now but user has already seen message + badge
+            try modelContext.save()
+
             scheduleGentleNudgeIfEnabled()
+
         } catch {
             await sendCoraMessage(content: "I had a little trouble saving your check-in. 💙")
         }

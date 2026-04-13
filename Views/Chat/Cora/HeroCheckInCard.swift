@@ -7,12 +7,23 @@
 
 import SwiftUI
 
+enum CheckInDestination: Hashable {
+    case conversation
+    case alreadyCheckedIn
+}
+
 struct HeroCheckInCard: View {
     let userName: String
     let hasCheckedInToday: Bool
 
+    @State private var destination: CheckInDestination? = nil
+
     var body: some View {
         ZStack(alignment: .leading) {
+
+            // Hidden NavigationLink using modern API — no deprecation warnings
+            NavigationLink(value: destination) { EmptyView() }
+
             VStack(alignment: .leading, spacing: 12) {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Hi there, \(userName)")
@@ -25,7 +36,9 @@ struct HeroCheckInCard: View {
                 .padding(.top, 45)
                 .padding(.leading, 20)
 
-                NavigationLink(destination: destinationView()) {
+                Button {
+                    destination = hasCheckedInToday ? .alreadyCheckedIn : .conversation
+                } label: {
                     Text("Let's go!")
                         .font(.appSubtitleSemibold)
                         .foregroundColor(Color("AccentCoral"))
@@ -60,14 +73,11 @@ struct HeroCheckInCard: View {
         )
         .cornerRadius(24)
         .padding(.horizontal, 20)
-    }
-
-    @ViewBuilder
-    private func destinationView() -> some View {
-        if hasCheckedInToday {
-            AlreadyCheckedInView()
-        } else {
-            ConversationView()
+        .navigationDestination(for: CheckInDestination.self) { dest in
+            switch dest {
+            case .conversation:     ConversationView()
+            case .alreadyCheckedIn: AlreadyCheckedInView()
+            }
         }
     }
 }

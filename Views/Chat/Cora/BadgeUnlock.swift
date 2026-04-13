@@ -1,6 +1,7 @@
 //
 //  BadgeUnlock.swift
 //  PulseCor
+
 import SwiftUI
 import Combine
 
@@ -38,6 +39,7 @@ struct BadgeUnlockSheet: View {
                         .font(.subheadline)
                         .foregroundColor(Color("MainText").opacity(0.75))
                         .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
                         .padding(.horizontal, 32)
                 }
 
