@@ -164,13 +164,11 @@ class ChatViewModel: ObservableObject {
         do {
             modelContext.insert(checkIn)
             let streak = try StreakService.updateStreak(modelContext: modelContext)
+            try modelContext.save()
+
             await sendCoraMessage(
                 content: "Perfect, you're all done for the day! You're on a \(streak)-day streak! 🎉 See you tomorrow!"
             )
-
-            try? await Task.sleep(for: .seconds(3))
-
-            try modelContext.save()
 
             completeConversation(flow: flow)
             checkBadgeUnlock(newStreak: streak)
