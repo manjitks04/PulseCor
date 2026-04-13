@@ -16,13 +16,8 @@ struct HeroCheckInCard: View {
     let userName: String
     let hasCheckedInToday: Bool
 
-    @State private var destination: CheckInDestination? = nil
-
     var body: some View {
         ZStack(alignment: .leading) {
-
-            // Hidden NavigationLink using modern API — no deprecation warnings
-            NavigationLink(value: destination) { EmptyView() }
 
             VStack(alignment: .leading, spacing: 12) {
                 VStack(alignment: .leading, spacing: 8) {
@@ -36,9 +31,7 @@ struct HeroCheckInCard: View {
                 .padding(.top, 45)
                 .padding(.leading, 20)
 
-                Button {
-                    destination = hasCheckedInToday ? .alreadyCheckedIn : .conversation
-                } label: {
+                NavigationLink(value: hasCheckedInToday ? CheckInDestination.alreadyCheckedIn : .conversation) {
                     Text("Let's go!")
                         .font(.appSubtitleSemibold)
                         .foregroundColor(Color("AccentCoral"))
@@ -47,6 +40,7 @@ struct HeroCheckInCard: View {
                         .background(Color("CardBG"))
                         .cornerRadius(16)
                 }
+                .buttonStyle(.plain)
                 .padding(.horizontal, 20)
                 .padding(.bottom, 20)
             }
