@@ -2,6 +2,7 @@
 //  DashboardView.swift
 //  PulseCor
 //
+
 import SwiftUI
 import SwiftData
 
@@ -27,12 +28,14 @@ struct DashboardView: View {
     @State private var featuredArticles: [Article] = []
 
     @Query private var users: [User]
-
     @Query(filter: #Predicate<DailyCheckIn> { $0.isComplete == true })
     private var allCheckIns: [DailyCheckIn]
-
     @Query(filter: #Predicate<Article> { $0.showOnBrowse == true })
     private var browseArticles: [Article]
+
+    // Adaptive Layout Constants
+    private let horizontalPadding: CGFloat = 20
+    private let cardCornerRadius: CGFloat = 24
 
     var weekDays: [CalendarDay] { WeeklyCalendarHelper.getCurrentWeek() }
     var monthYear: String { WeeklyCalendarHelper.getMonthYear() }
@@ -48,96 +51,110 @@ struct DashboardView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 12) {
-                    HStack {
-                        Text("Hi there, \(users.first?.name ?? "Partner")👋")
-                            .font(.largeTitle)
-                            .fontWeight(.bold)
-                            .foregroundColor(Color("MainText"))
+                VStack(spacing: 24) {
+                    
+                    //Header & Profile
+                    HStack(alignment: .firstTextBaseline) {
+                        VStack(alignment: .leading, spacing: 4) {
+                          Text("Hi there, \(users.first?.name ?? "Partner")👋")
+                                .font(.largeTitle)
+                                .fontWeight(.bold)
+                                .foregroundColor(Color("MainText"))
+                                .minimumScaleFactor(0.7)
+                                .lineLimit(1)
+                        }
+                        
                         Spacer()
+                        
+                        if let currentUser = users.first {
+                            ProfileButton(user: currentUser)
+                        }
                     }
-                    .padding(.horizontal, 40)
-                    .padding(.top, 55)
+                    .padding(.horizontal, horizontalPadding)
+                    .padding(.top, 20)
 
-                    VStack(spacing: 16) {
+                    // Main Check-in Card (The "Hero" Card)
+                    VStack(spacing: 20) {
                         Text(monthYear)
-                            .font(.title3)
-                            .fontWeight(.semibold)
-                            .foregroundColor(.white)
+                            .font(.headline)
+                            .foregroundColor(.white.opacity(0.9))
 
-                        Button(action: { activeSheet = .calendar }) {
-                            HStack(spacing: 0) {
-                                ForEach(weekDays) { day in
-                                    VStack(spacing: 3) {
+                        // Weekly Calendar Row
+                        HStack(spacing: 0) {
+                            ForEach(weekDays) { day in
+                                Button(action: { activeSheet = .calendar }) {
+                                    VStack(spacing: 6) {
                                         Text(day.dayLetter)
-                                            .font(.caption)
+                                            .font(.caption2)
                                             .fontWeight(.bold)
-                                            .foregroundColor(.white)
+                                        
                                         Text("\(day.dayNum)")
-                                            .font(.system(size: 15, weight: day.isCurrentDay ? .bold : .regular))
-                                            .foregroundColor(.white)
-                                            .frame(width: 32, height: 28)
-                                            .background(Circle().fill(day.isCurrentDay ? Color("FillBlue") : Color.clear))
+                                            .font(.system(size: 14, weight: day.isCurrentDay ? .bold : .medium))
+                                            .frame(width: 32, height: 32)
+                                            .background(
+                                                Circle()
+                                                    .fill(day.isCurrentDay ? Color("FillBlue") : Color.clear)
+                                            )
                                     }
                                     .frame(maxWidth: .infinity)
+                                    .foregroundColor(.white)
                                 }
+                                .buttonStyle(.plain)
                             }
                         }
-                        .buttonStyle(.plain)
 
-                        VStack(spacing: 8) {
+                        VStack(spacing: 12) {
                             Text("Ready to check in...?")
-                                .font(.title2)
+                                .font(.title3)
                                 .fontWeight(.semibold)
                                 .foregroundColor(.white)
 
                             NavigationLink(destination: destinationView()) {
                                 Text("Let's go!")
                                     .font(.subheadline)
-                                    .fontWeight(.medium)
-                                    .foregroundColor(.pink)
-                                    .padding(.horizontal, 24)
-                                    .padding(.vertical, 8)
-                                    .background(Color.white)
-                                    .cornerRadius(20)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(Color("AccentPink"))
+                                    .padding(.horizontal, 32)
+                                    .padding(.vertical, 12)
+                                    .background(Capsule().fill(.white))
+                                    .shadow(color: .black.opacity(0.1), radius: 4, y: 2)
                             }
                         }
-                        .padding(.top, 8)
                     }
-                    .padding()
+                    .padding(.vertical, 24)
                     .background(LinearGradient(colors: [Color("AccentCoral"), Color("AccentPink").opacity(0.65)], startPoint: .leading, endPoint: .trailing))
-                    .cornerRadius(16)
-                    .padding(.horizontal, 40)
+                    .cornerRadius(cardCornerRadius)
+                    .padding(.horizontal, horizontalPadding)
 
+                    //Stats Grid
                     HStack(spacing: 16) {
                         WeeklyCheckIn(completedDays: weeklyCheckInCount)
                         StreakCard(currentStreak: currentStreak)
                     }
-                    .padding(.horizontal, 40)
+                    .padding(.horizontal, horizontalPadding)
 
-                    VStack(alignment: .leading, spacing: 12) {
+                    //Featured Articles
+                    VStack(alignment: .leading, spacing: 16) {
                         Text("For you today")
-                            .font(.system(size: 22, weight: .semibold))
+                            .font(.title2)
+                            .fontWeight(.bold)
                             .foregroundColor(Color("MainText"))
-                            .padding(.horizontal, 40)
+                            .padding(.horizontal, horizontalPadding)
 
-                        HStack(spacing: 8) {
-                            ForEach(featuredArticles) { article in
-                                DashboardArticleCard(article: article)
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 16) {
+                                ForEach(featuredArticles) { article in
+                                    DashboardArticleCard(article: article)
+                                }
                             }
+                            .padding(.horizontal, horizontalPadding)
                         }
-                        .padding(.horizontal, 50)
                     }
-                }
-                .overlay(alignment: .topTrailing) {
-                    if let currentUser = users.first {
-                        ProfileButton(user: currentUser)
-                            .padding(.trailing, 45)
-                            .padding(.top, 20)
-                    }
+                    
+                    Spacer(minLength: 30)
                 }
             }
-            .background(Color("MainBG"))
+            .background(Color("MainBG").ignoresSafeArea())
             .navigationBarHidden(true)
             .background(DashboardOnboardingAdapter(activeSheet: $activeSheet))
             .task {
@@ -221,24 +238,7 @@ struct DashboardView: View {
     }
 }
 
-private struct DashboardOnboardingAdapter: View {
-    @ObservedObject private var onboarding = OnboardingViewModel.shared
-    @Binding var activeSheet: DashboardSheet?
-
-    var body: some View {
-        Color.clear
-            .onChange(of: onboarding.shouldOpenSettings) { _, shouldOpen in
-                if shouldOpen {
-                    activeSheet = .settings
-                } else {
-                    if case .settings = activeSheet {
-                        activeSheet = nil
-                    }
-                }
-            }
-    }
-}
-
+// Article Card Component
 struct DashboardArticleCard: View {
     let article: Article
 
@@ -249,22 +249,46 @@ struct DashboardArticleCard: View {
                     Image(imageName)
                         .resizable()
                         .aspectRatio(contentMode: .fill)
-                        .frame(width: 110, height: 160)
+                        .frame(width: 140, height: 180)
                         .clipped()
                 } else {
-                    Color.gray.opacity(0.3).frame(width: 130, height: 180)
+                    Color.gray.opacity(0.2)
+                        .frame(width: 140, height: 180)
                 }
-                LinearGradient(gradient: Gradient(colors: [.clear, .black.opacity(0.8)]), startPoint: .center, endPoint: .bottom)
+                
+                LinearGradient(
+                    gradient: Gradient(colors: [.clear, .black.opacity(0.7)]),
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                
                 Text(article.title)
                     .font(.system(size: 14, weight: .bold))
                     .foregroundColor(.white)
-                    .lineLimit(nil)
+                    .lineLimit(2)
+                    .multilineTextAlignment(.leading)
                     .padding(12)
             }
-            .frame(width: 110, height: 160)
+            .frame(width: 140, height: 180)
             .cornerRadius(16)
         }
         .buttonStyle(PlainButtonStyle())
     }
 }
 
+//Onboarding Adapter
+private struct DashboardOnboardingAdapter: View {
+    @ObservedObject private var onboarding = OnboardingViewModel.shared
+    @Binding var activeSheet: DashboardSheet?
+
+    var body: some View {
+        Color.clear
+            .onChange(of: onboarding.shouldOpenSettings) { _, shouldOpen in
+                if shouldOpen {
+                    activeSheet = .settings
+                } else if case .settings = activeSheet {
+                    activeSheet = nil
+                }
+            }
+    }
+}
