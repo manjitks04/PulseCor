@@ -150,7 +150,7 @@ class ChatScreenViewModel: ObservableObject {
         if !sleepScores.isEmpty {
             let avg = Double(sleepScores.reduce(0, +)) / Double(sleepScores.count)
             if avg < 2.0 { return "Your sleep has been on the lower side this week. Even an extra 30 minutes can shift how you feel day to day." }
-            else if avg >= 3.0 { return "You've got solid sleep this week 🌙 That's one of the best things you can do for your heart." }
+            else if avg >= 3.0 { return "You've got solid sleep this week! That's one of the best things you can do for your heart." }
         }
         return "You've completed \(checkIns.count) check-ins this week 🌟 Keep that momentum going."
     }

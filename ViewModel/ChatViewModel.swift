@@ -83,7 +83,7 @@ class ChatViewModel: ObservableObject {
             if response.lowercased().contains("yes") || response.lowercased().contains("do it") {
                 moveToNextStep(.askSleepQuality, flow: flow)
                 await sendCoraMessage(
-                    content: "Awesome! Let's start. How did you sleep last night? 😴",
+                    content: "Awesome! Let's start. How did you sleep last night?",
                     quickReplies: SleepQuality.allCases.map { $0.rawValue }
                 )
             } else {
@@ -105,7 +105,7 @@ class ChatViewModel: ObservableObject {
             moveToNextStep(.askWater, flow: flow)
             await sendCoraMessage(content: getSleepHoursResponse(response))
             await sendCoraMessage(
-                content: "Thanks for sharing! Now, water time — how many glasses have you had today? 💧",
+                content: "Thanks for sharing! Onto hydration, how many glasses have you had today? 💧",
                 quickReplies: WaterIntake.allCases.map { $0.rawValue }
             )
 
@@ -114,7 +114,7 @@ class ChatViewModel: ObservableObject {
             moveToNextStep(.askStress, flow: flow)
             await sendCoraMessage(content: getWaterResponse(response))
             await sendCoraMessage(
-                content: "Nice! Quick stress check — how are you feeling today?",
+                content: "Nice! Quick stress check, how are you feeling today?",
                 quickReplies: StressLevel.allCases.map { $0.rawValue }
             )
 
@@ -123,7 +123,7 @@ class ChatViewModel: ObservableObject {
             moveToNextStep(.askEnergy, flow: flow)
             await sendCoraMessage(content: getStressResponse(response))
             await sendCoraMessage(
-                content: "I hear you. Now, energy check — how are your levels today? ⚡",
+                content: "I hear you. Now, for your energy check, how are your levels today?",
                 quickReplies: EnergyLevel.allCases.map { $0.rawValue }
             )
 
@@ -132,7 +132,7 @@ class ChatViewModel: ObservableObject {
             moveToNextStep(.askActivity, flow: flow)
             await sendCoraMessage(content: getEnergyResponse(response))
             await sendCoraMessage(
-                content: "Got it! Last thing — how active have you been today? 🏃‍♀️",
+                content: "Got it! Last thing now, how active have you been today?",
                 quickReplies: ActivityLevel.allCases.map { $0.rawValue }
             )
 
@@ -146,37 +146,6 @@ class ChatViewModel: ObservableObject {
             break
         }
     }
-
-//    private func completeCheckIn(flow: ConversationFlow) async {
-//        guard let modelContext else { return }
-//        let checkIn = DailyCheckIn(
-//            userId: 1,
-//            date: Date(),
-//            sleepQuality: SleepQuality(rawValue: flow.tempData["sleepQuality"] ?? ""),
-//            sleepHours: SleepHours(rawValue: flow.tempData["sleepHours"] ?? ""),
-//            waterGlasses: WaterIntake(rawValue: flow.tempData["water"] ?? ""),
-//            stressLevel: StressLevel(rawValue: flow.tempData["stress"] ?? ""),
-//            energyLevel: EnergyLevel(rawValue: flow.tempData["energy"] ?? ""),
-//            activityLevel: ActivityLevel(rawValue: flow.tempData["activity"] ?? ""),
-//            isComplete: true
-//        )
-//
-//        do {
-//            modelContext.insert(checkIn)
-//            let streak = try StreakService.updateStreak(modelContext: modelContext)
-//            try modelContext.save()
-//
-//            await sendCoraMessage(
-//                content: "Perfect, you're all done for the day! You're on a \(streak)-day streak! 🎉 See you tomorrow!"
-//            )
-//
-//            completeConversation(flow: flow)
-//            checkBadgeUnlock(newStreak: streak)
-//            scheduleGentleNudgeIfEnabled()
-//        } catch {
-//            await sendCoraMessage(content: "I had a little trouble saving your check-in. 💙")
-//        }
-//    }
     
     private func completeCheckIn(flow: ConversationFlow) async {
         guard let modelContext else { return }
@@ -196,20 +165,20 @@ class ChatViewModel: ObservableObject {
             modelContext.insert(checkIn)
             let streak = try StreakService.updateStreak(modelContext: modelContext)
 
-            // ✅ Send final message BEFORE saving — @Query hasn't updated yet
+            // Sends final message BEFORE saving so @Query hasn't updated yet
             await sendCoraMessage(
                 content: "Perfect, you're all done for the day! You're on a \(streak)-day streak! 🎉 See you tomorrow!"
             )
 
-            // ✅ Badge fires while user is still reading the message
+            //then badge fires while user is reading the message
             checkBadgeUnlock(newStreak: streak)
 
-            // ✅ Mark flow complete in memory only — no save yet so NavStack stays put
+            // flow complete in memory only, no save yet so NavStack stays put
             flow.isComplete = true
             flow.completedAt = Date()
             currentFlow = nil
 
-            // ✅ Single save at the very end — @Query updates now but user has already seen message + badge
+            //single save at the very end — @Query updates now but user has already seen message + badge
             try modelContext.save()
 
             scheduleGentleNudgeIfEnabled()
@@ -295,19 +264,19 @@ class ChatViewModel: ObservableObject {
 
     private func getSleepQualityResponse(_ quality: String) -> String {
         switch SleepQuality(rawValue: quality) {
-        case .refreshed: return "That's wonderful! Good sleep makes such a difference ✨"
+        case .refreshed: return "That's wonderful! Good sleep makes such a difference"
         case .okay:      return "Fair enough. At least you got some rest 😊"
         case .groggy:    return "I hear you. Some nights are harder than others 💙"
-        default:         return "Thanks for sharing how you slept! 😴"
+        default:         return "Thanks for sharing how you slept!"
         }
     }
 
     private func getSleepHoursResponse(_ hours: String) -> String {
         switch SleepHours(rawValue: hours) {
         case .eightPlus, .sevenToEight: return "That's really good! Right in the sweet spot ✨"
-        case .sixToSeven:               return "Not too bad, but maybe a little more rest tonight? 🌙"
+        case .sixToSeven:               return "Not too bad, but maybe a little more rest tonight?"
         case .lessThanSix:              return "I understand. Hope you can catch up on rest soon 💙"
-        default:                        return "Got it, thanks for tracking your rest! 🌙"
+        default:                        return "Got it, thanks for tracking your rest!"
         }
     }
 
@@ -316,32 +285,32 @@ class ChatViewModel: ObservableObject {
         case .veryHigh: return "Wow! You're absolutely crushing hydration today!"
         case .high:     return "Great job! You're keeping yourself well hydrated!"
         case .moderate: return "Nice! You're on the right track 💙"
-        case .low:      return "No worries! There's still time to catch up. Your body will thank you 💧"
-        default:        return "Thanks for letting me know! 💧"
+        case .low:      return "No worries! There's still time to catch up. Your body will thank you!"
+        default:        return "Thanks for letting me know!"
         }
     }
 
     private func getStressResponse(_ stress: String) -> String {
         switch StressLevel(rawValue: stress) {
-        case .calm:     return "That's so good to hear! Keep riding that peaceful wave 😌✨"
-        case .moderate: return "I hear you. Remember, you're doing your best. Take a deep breath. 🌬️"
-        case .high:     return "I'm sorry it's a tough day. One step at a time, you've got this. 💙"
+        case .calm:     return "That's so good to hear! Keep riding that peaceful wave✨"
+        case .moderate: return "I hear you. Remember, you're doing your best. Take a deep breath, you got this"
+        case .high:     return "I'm sorry it's a tough day. One step at a time, you've got this.💙"
         default:        return "Thanks for checking in with your stress levels. 💙"
         }
     }
 
     private func getEnergyResponse(_ energy: String) -> String {
         switch EnergyLevel(rawValue: energy) {
-        case .high:   return "Love that! You're crushing it today 🚀"
-        case .medium: return "Steady and balanced — that's great! ⚡"
-        case .low:    return "Listen to your body today. It's okay to take it slow. 🛌"
-        default:      return "Thanks for sharing your energy levels! ⚡"
+        case .high:   return "Love that! You're crushing it today "
+        case .medium: return "Steady and balanced, that's great to hear!"
+        case .low:    return "Listen to your body today. It's okay to take it slow."
+        default:      return "Thanks for sharing your energy levels! "
         }
     }
 
     private func getActivityResponse(_ activity: String) -> String {
         switch ActivityLevel(rawValue: activity) ?? .none {
-        case .high:        return "Wow, look at you go! Movement is such a great mood booster. 🚀"
+        case .high:        return "Wow, look at you go! Movement is such a great mood booster."
         case .medium:      return "Nice job getting some movement in today! ✨"
         case .low, .none:  return "That's okay! Rest is just as important as movement. 💙"
         }

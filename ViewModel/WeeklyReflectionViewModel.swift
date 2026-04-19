@@ -94,7 +94,7 @@ class WeeklyReflectionViewModel: ObservableObject {
         if avgSleepHours < 6.5 {
             sleepCaption = "Sleep was a struggle this week. Even 30 extra minutes can shift how you feel each day."
         } else if avgSleepHours >= 7.5 {
-            sleepCaption = "Solid sleep this week — one of the best things you can do for your heart."
+            sleepCaption = "Solid sleep this week, it's one of the best things you can do for your heart."
         } else {
             sleepCaption = "Decent sleep overall. A consistent bedtime could help lock in those gains."
         }
@@ -109,11 +109,11 @@ class WeeklyReflectionViewModel: ObservableObject {
         let avgE = avg(energyData)
 
         if avgS >= 2.3 {
-            stressEnergyCaption = "A high-stress week. Notice how energy dipped when stress peaked — your body was working hard."
+            stressEnergyCaption = "A high-stress week. Notice how energy dipped when stress peaked, your body was working hard."
         } else if avgE >= 2.5 {
             stressEnergyCaption = "Great energy despite the ups and downs. Keep doing whatever you're doing."
         } else {
-            stressEnergyCaption = "Stress and energy ebbed and flowed this week — the pattern tells a story worth watching."
+            stressEnergyCaption = "Stress and energy ebbed and flowed this week, keep an eye on this!."
         }
     }
 
@@ -134,7 +134,7 @@ class WeeklyReflectionViewModel: ObservableObject {
         } else if low >= 3 {
             hydrationCaption = "Hydration was a challenge this week. Try starting each morning with a full glass before anything else."
         } else {
-            hydrationCaption = "Decent hydration on most days — just a couple of dips. A visible water bottle helps more than you'd think."
+            hydrationCaption = "Decent hydration on most days, just a couple of dips. A visible water bottle helps more than you'd think."
         }
     }
 
@@ -160,19 +160,19 @@ class WeeklyReflectionViewModel: ObservableObject {
         // Sleep → Stress
         if lowSleep.count >= 2, highSleep.count >= 1 {
             let diff = avgStressOf(lowSleep) - avgStressOf(highSleep)
-            if diff > 0.4 { found.append(.init(title: "Poor sleep, higher stress", body: "Your stress was noticeably higher after shorter sleep nights. Rest isn't just about energy — it's your stress shield too.", strength: diff)) }
+            if diff > 0.4 { found.append(.init(title: "Poor sleep, higher stress", body: "Your stress was noticeably higher after shorter sleep nights. Rest isn't just about energy, it's your stress shield too.", strength: diff)) }
         }
 
         // Stress → Energy
         if highStress.count >= 1, calmCheck.count >= 1 {
             let diff = avgEnergyOf(calmCheck) - avgEnergyOf(highStress)
-            if diff > 0.4 { found.append(.init(title: "Stress drains energy", body: "On high-stress days your energy was noticeably lower. Stress is expensive — your body pays for it in how you feel.", strength: diff)) }
+            if diff > 0.4 { found.append(.init(title: "Stress drains energy", body: "On high-stress days your energy was noticeably lower. Stress is expensive, your body pays for it in how you feel.", strength: diff)) }
         }
 
         // Hydration → Energy
         if lowWater.count >= 1, highWater.count >= 1 {
             let diff = avgEnergyOf(highWater) - avgEnergyOf(lowWater)
-            if diff > 0.4 { found.append(.init(title: "Water fuels energy", body: "Your energy was higher on the days you stayed well hydrated. It sounds simple because it is — water genuinely works.", strength: diff)) }
+            if diff > 0.4 { found.append(.init(title: "Water fuels energy", body: "Your energy was higher on the days you stayed well hydrated. It sounds simple because it is, water genuinely works.", strength: diff)) }
         }
 
         // Hydration → Stress
@@ -190,7 +190,7 @@ class WeeklyReflectionViewModel: ObservableObject {
         // Activity → Energy
         if highAct.count >= 1, lowAct.count >= 1 {
             let diff = avgEnergyOf(highAct) - avgEnergyOf(lowAct)
-            if diff > 0.4 { found.append(.init(title: "Activity boosts energy", body: "Your energy was noticeably higher on active days. Movement gives back more than it takes — even a short walk counts.", strength: diff)) }
+            if diff > 0.4 { found.append(.init(title: "Activity boosts energy", body: "Your energy was noticeably higher on active days. Movement gives back more than it takes, even a short walk counts.", strength: diff)) }
         }
 
         topCorrelations = Array(found.sorted { $0.strength > $1.strength }.prefix(2))
@@ -202,25 +202,25 @@ class WeeklyReflectionViewModel: ObservableObject {
         let e = avgEnergyOf(checkIns)
 
         if s >= 2.3 && checkInCount == 7 {
-            headlineInsight = "It was a high-stress week — but you didn't miss a single day"
+            headlineInsight = "It was a high-stress week but you didn't miss a single day"
         } else if sl < 6.5 && checkInCount == 7 {
-            headlineInsight = "Sleep was tough this week — but you showed up every day"
+            headlineInsight = "Sleep was tough this week but you showed up every day"
         } else if e >= 2.5 && checkInCount == 7 {
-            headlineInsight = "Great energy this week — and a perfect check-in record to match"
+            headlineInsight = "Great energy this week and a perfect check-in record to match"
         } else if checkInCount == 7 {
             headlineInsight = "A full week of check-ins. Whatever life threw at you, you kept showing up"
         } else if s >= 2.3 {
             headlineInsight = "A stressful week, but you kept coming back to check in"
         } else if sl < 6.5 {
-            headlineInsight = "Sleep was on the lower side this week — let's see what the data says"
+            headlineInsight = "Sleep was on the lower side this week, let's see what the data says"
         } else {
-            headlineInsight = "Another week in the books — let's see how it went"
+            headlineInsight = "Another week in the books, let's see how it went"
         }
     }
 
     private func computeWeekWin(_ checkIns: [DailyCheckIn]) {
         if checkInCount == 7 {
-            weekWin = "You completed every single check-in this week. No excuses, no skips — just showing up."
+            weekWin = "You completed every single check-in this week. No excuses, no skips, just showing up."
         } else if calmDays >= 4 {
             weekWin = "You had \(calmDays) calm days this week. That's your nervous system working well."
         } else if hydrationGoalDays >= 5 {
@@ -246,29 +246,29 @@ class WeeklyReflectionViewModel: ObservableObject {
         switch checkInCount {
         case 7:
             if isHighStress {
-                closingMessage = "Perfect attendance through a tough week — that's real dedication. Next week, let's focus on bringing that stress down a notch. You've got this 💙"
+                closingMessage = "Perfect attendance through a tough week, that's real dedication. I'm proud of you! Next week, let's focus on bringing that stress down a notch. You've got this 💙"
             } else if isLowSleep {
-                closingMessage = "Seven check-ins even on the tired days — that consistency is exactly how habits stick. Try protecting your bedtime this week, even 30 minutes earlier helps."
+                closingMessage = "Seven check-ins even on the tired days, that consistency is exactly how habits stick. Try protecting your bedtime this week, even 30 minutes earlier helps."
             } else if isLowEnergy {
-                closingMessage = "You showed up every day even when energy was low. Rest, hydrate, and keep going — your body is listening 💙"
+                closingMessage = "You showed up every day even when energy was low. Rest, hydrate, and keep going your body is listening 💙"
             } else {
-                closingMessage = "Seven for seven. A genuinely great week — keep that momentum and let's make next week even better 💙"
+                closingMessage = "Seven for seven. A genuinely great week, keep that momentum and let's make next week even better 💙"
             }
         case 5, 6:
             if isHighStress {
-                closingMessage = "A tough week, but you kept coming back. Missing a day or two is human — what matters is you didn't stop. Next week, take it one day at a time 💙"
+                closingMessage = "A tough week, but you kept coming back. Missing a day or two is human but what matters is you didn't stop. Next week, take it one day at a time 💙"
             } else if isLowSleep {
-                closingMessage = "Not a full week, but you're still here — and that counts. A little more sleep and consistency will go a long way next week."
+                closingMessage = "Not a full week, but you're still here and that counts. A little more sleep and consistency will go a long way next week."
             } else if isPositive {
-                closingMessage = "Nearly a full week and a good one at that. One more check-in next week and you'll have a perfect run — you're so close 💙"
+                closingMessage = "Nearly a full week and a good one at that. One more check-in next week and you'll have a perfect run, you're so close 💙"
             } else {
                 closingMessage = "Most of the week done. Keep building that habit and it'll start to feel effortless 💙"
             }
         default:
             if isHighStress {
-                closingMessage = "A hard week on multiple fronts. The fact that you're here reviewing your data says a lot. Take care of yourself — start small 💙"
+                closingMessage = "A hard week on multiple fronts. The fact that you're here reviewing your data says a lot. Take care of yourself, start small 💙"
             } else {
-                closingMessage = "Every check-in makes the next one easier. You've started — now let's build on it 💙"
+                closingMessage = "Every check-in makes the next one easier. You've started and now let's build on it together 💙"
             }
         }
     }
