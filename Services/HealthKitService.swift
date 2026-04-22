@@ -2,9 +2,14 @@
 //  HealthKitService.swift
 //  PulseCor
 //
+// Core HealthKit integration layer, handles auth, background syncing, data fetching
+//
+
 import SwiftData
 import HealthKit
 
+
+// Manages auth and data sync, singleton service running in background
 class HealthKitService {
     static let shared = HealthKitService()
     let healthStore = HKHealthStore()
@@ -12,7 +17,9 @@ class HealthKitService {
     private var syncDebounceTask: Task<Void, Never>?
 
     private init() {}
-
+    
+    
+    // Reuqests read access to metrics
     func requestAuth() async -> (Bool, Error?) {
         let steps = HKObjectType.quantityType(forIdentifier: .stepCount)!
         let heartRate = HKObjectType.quantityType(forIdentifier: .heartRate)!
@@ -27,6 +34,7 @@ class HealthKitService {
         }
     }
 
+    // Starts background observing for all metrics, hourly background delivery
     func startObserving(context: ModelContext) {
         let identifiers: [HKQuantityTypeIdentifier] = [
             .stepCount, .heartRate, .restingHeartRate, .heartRateVariabilitySDNN
@@ -35,6 +43,7 @@ class HealthKitService {
         for identifier in identifiers {
             let type = HKObjectType.quantityType(forIdentifier: identifier)!
 
+            // Observer query triggers whenever HealthKit detects new data
             let query = HKObserverQuery(sampleType: type, predicate: nil) { [weak self] _, _, error in
                 guard error == nil, let self else { return }
                 self.scheduleDebouncedSync(context: context)
@@ -60,10 +69,13 @@ class HealthKitService {
         }
     }
 
+    
+    // Fetches last 7 das of data, replaces all cached entries
     func syncWeeklySummary(context: ModelContext) async {
         let calendar = Calendar.current
         guard let sevenDaysAgo = calendar.date(byAdding: .day, value: -7, to: Date()) else { return }
 
+        //clears data
         await MainActor.run {
             try? context.delete(model: StepEntry.self)
             try? context.delete(model: HeartRateEntry.self)
@@ -72,6 +84,7 @@ class HealthKitService {
             try? context.save()
         }
 
+        //fetches all metrics in parallel
         async let steps: () = fetchSteps(since: sevenDaysAgo, context: context)
         async let hr: () = fetchHeartRate(since: sevenDaysAgo, context: context)
         async let rhr: () = fetchHeartRestingRate(since: sevenDaysAgo, context: context)
@@ -80,6 +93,7 @@ class HealthKitService {
         _ = await (steps, hr, rhr, hrv)
     }
 
+    // Uses cumaltive sum from start of day till now
     func fetchSteps(since date: Date, context: ModelContext) async {
         let type = HKObjectType.quantityType(forIdentifier: .stepCount)!
         
@@ -109,6 +123,7 @@ class HealthKitService {
         }
     }
 
+    // 7 day average
     func fetchHeartRate(since date: Date, context: ModelContext) async {
         let type = HKQuantityType.quantityType(forIdentifier: .heartRate)!
         let predicate = HKQuery.predicateForSamples(withStart: date, end: Date(), options: .strictStartDate)
@@ -133,6 +148,7 @@ class HealthKitService {
         }
     }
 
+    // 7 day average
     func fetchHeartRestingRate(since date: Date, context: ModelContext) async {
         let type = HKQuantityType.quantityType(forIdentifier: .restingHeartRate)!
         let predicate = HKQuery.predicateForSamples(withStart: date, end: Date(), options: .strictStartDate)
@@ -157,6 +173,7 @@ class HealthKitService {
         }
     }
 
+    // 7 day average
     func fetchHeartRateVar(since date: Date, context: ModelContext) async {
         let type = HKQuantityType.quantityType(forIdentifier: .heartRateVariabilitySDNN)!
         let predicate = HKQuery.predicateForSamples(withStart: date, end: Date(), options: .strictStartDate)

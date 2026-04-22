@@ -2,6 +2,7 @@
 //  NavigationManager.swift
 //  PulseCor
 //
+// Global navigatio state coordinator for tab selection
 import SwiftUI
 import Combine
 
@@ -9,6 +10,7 @@ enum AppTab {
     case home, cora, browse, pulsecor, health
 }
 
+// Represents medication reminder notifcation that triggered app launch, used to restore notif contextafter cold launch
 struct PendingMedication: Equatable, Identifiable {
     let id: String
     let name: String
@@ -16,11 +18,12 @@ struct PendingMedication: Equatable, Identifiable {
     let time: String
 }
 
+// Centralised navigation state manager
 class NavigationManager: ObservableObject {
     static let shared = NavigationManager()
 
     @Published var selectedTab: AppTab = .home
-    @Published var pendingTab: AppTab? = nil
+    @Published var pendingTab: AppTab? = nil // Tab to navigate after completing current flow
     @Published var pendingWeeklyReflection: Bool = false
 
     // Backs up to UserDefaults whenever set so cold launches can restore it

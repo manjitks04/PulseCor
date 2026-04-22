@@ -2,9 +2,8 @@
 //  StreakService.swift
 //  PulseCor
 //
-//  Service responsible for all streak calculation and persistence logic.
-//  Called by ChatViewModel after a check-in completes, and by DashboardViewModel
-//  when refreshing streak display data.
+//  Service responsible for all streak calculation and persistence logic
+//  Called by ChatViewModel after a check-in completes, and by DashboardViewModel when refreshing streak display data
 //
 
 import Foundation

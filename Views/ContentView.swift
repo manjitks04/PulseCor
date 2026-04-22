@@ -49,7 +49,6 @@ struct ContentView: View {
             .toolbarBackground(.visible, for: .tabBar)
 
             OnboardingLayer()
-            HealthAlertLayer()
         }
         .preferredColorScheme(isDarkMode ? .dark : .light)
         .task {
@@ -89,19 +88,6 @@ private struct OnboardingLayer: View {
     }
 }
 
-private struct HealthAlertLayer: View {
-    @ObservedObject private var healthManager = HealthKitManager.shared
-
-    var body: some View {
-        Color.clear
-            .alert("Health Access Disconnected", isPresented: $healthManager.accessRevoked) {
-                Button("Open Settings") { healthManager.openSettings() }
-                Button("Cancel", role: .cancel) { healthManager.accessRevoked = false }
-            } message: {
-                Text("PulseCor no longer has access to your Health data. To reconnect, please re-enable access in your iPhone Settings.")
-            }
-    }
-}
 
 #Preview {
     ContentView()

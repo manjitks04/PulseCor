@@ -3,9 +3,12 @@
 //  PulseCor
 //
 //  Handles alerts within app (medication, check-ins, reflections, foreground suppression logic)
+//
+
 import UserNotifications
 import Foundation
 
+// Implements UNUserNotificationCenterDelegate to conrol presentation, handle user interactions
 class NotificationService: NSObject, UNUserNotificationCenterDelegate {
     static let shared = NotificationService()
 
@@ -14,6 +17,7 @@ class NotificationService: NSObject, UNUserNotificationCenterDelegate {
         UNUserNotificationCenter.current().delegate = self
     }
 
+    // Medication, snooze, weekly refelction notif show in app, daily check in is suppressed
     func userNotificationCenter(
         _ center: UNUserNotificationCenter,
         willPresent notification: UNNotification,
@@ -27,6 +31,7 @@ class NotificationService: NSObject, UNUserNotificationCenterDelegate {
         }
     }
 
+    // Handles notifcation taps, routes user to correct tab and sets pending state
     func userNotificationCenter(
         _ center: UNUserNotificationCenter,
         didReceive response: UNNotificationResponse,
@@ -35,6 +40,7 @@ class NotificationService: NSObject, UNUserNotificationCenterDelegate {
         let id = response.notification.request.identifier
         let userInfo = response.notification.request.content.userInfo
 
+        // Persist medication data to UserDefaults for cold launch restoratin
         if (id.hasPrefix("medication-") || id.hasPrefix("snooze-")),
            let medId = userInfo["medicationId"] as? String,
            let name = userInfo["medicationName"] as? String,
@@ -47,6 +53,7 @@ class NotificationService: NSObject, UNUserNotificationCenterDelegate {
             UserDefaults.standard.set(time,    forKey: "pendingMedTime")
         }
 
+        // Routes user to right tab based on notif type
         Task { @MainActor in
             if id == "daily-checkin" {
                 NavigationManager.shared.pendingTab = .cora
@@ -75,6 +82,7 @@ class NotificationService: NSObject, UNUserNotificationCenterDelegate {
         }
     }
 
+    // Requests notif permission on first install
     func requestAuthorization() async -> Bool {
         do {
             return try await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge])
@@ -84,6 +92,7 @@ class NotificationService: NSObject, UNUserNotificationCenterDelegate {
         }
     }
 
+    // Schedules daily notif for each reminder time
     func scheduleMedicationReminders(medicationId: String, medicationName: String, dosage: String, times: [String]) {
         let center = UNUserNotificationCenter.current()
         for time in times {
@@ -134,6 +143,7 @@ class NotificationService: NSObject, UNUserNotificationCenterDelegate {
         }
     }
 
+    // Schedules a one time reminder 10 minutes after initial notif
     func snoozeMedicationReminder(medicationId: String, medicationName: String, dosage: String) {
         let content = UNMutableNotificationContent()
         content.title = "💊 Medication Reminder"
@@ -146,7 +156,7 @@ class NotificationService: NSObject, UNUserNotificationCenterDelegate {
             "scheduledTime": ""
         ]
 
-        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 120, repeats: false)
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 600, repeats: false)
         let request = UNNotificationRequest(identifier: "snooze-\(medicationId)", content: content, trigger: trigger)
         Task {
             do {
@@ -213,7 +223,8 @@ class NotificationService: NSObject, UNUserNotificationCenterDelegate {
     func cancelWeeklyReflection() {
         UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: ["weekly-reflection"])
     }
-
+    
+    // Fires 2 days after last check-in at 9:30pm to encourage re-engagement
     func scheduleGentleNudge(fireAt date: Date) {
         let center = UNUserNotificationCenter.current()
         center.removePendingNotificationRequests(withIdentifiers: ["gentle-nudge"])

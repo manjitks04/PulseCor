@@ -2,10 +2,11 @@
 //  MedicationStatus.swift
 //  PulseCor
 //
-//
+// UI styling
 import SwiftUI
 
 extension MedicationStatus {
+    // Icon background colours, used in calendar medication log cards
     var iconColors: (Color, Color) {
         switch self {
         case .taken:   return (Color("AccentPink").opacity(0.25), Color("AccentPink").opacity(0.1))
@@ -22,6 +23,7 @@ extension MedicationStatus {
         }
     }
 
+    // Badge style configurations for dayEntryCard display
     var badge: DayEntryCard.BadgeStyle {
         switch self {
         case .taken:
