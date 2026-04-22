@@ -1,12 +1,16 @@
 //
 //  ArticleSeeder.swift
 //  PulseCor
+//
+//  Populates SwiftData with educational articles on first app launch.
+//
 
 import Foundation
 import SwiftData
 
 struct ArticleSeeder {
 
+    // Uses UserDefaults flag to prevent duplicate seeding across app launches.
     static func seedIfNeeded(in modelContext: ModelContext) {
         let existing = (try? modelContext.fetch(FetchDescriptor<Article>())) ?? []
         if existing.contains(where: { $0.content == "Content not available." }) {
@@ -29,10 +33,12 @@ struct ArticleSeeder {
         }
     }
 
+    // Combines total 27 articles across 3 categories
     private static func buildArticles() -> [Article] {
         browseArticles() + categoryOnlyArticles()
     }
 
+    // Articles features on main browse tab
     private static func browseArticles() -> [Article] {
         [
             Article(title: "Improve your sleep", summary: "Better sleep changes everything", content: loadContent("improve_sleep"), category: .sleep, articleType: .helpfulArticle, imageName: "improve_sleep", showOnBrowse: true),
@@ -73,6 +79,7 @@ struct ArticleSeeder {
         ]
     }
 
+    // Loads article content from .txt file
     private static func loadContent(_ filename: String) -> String {
         guard let path = Bundle.main.path(forResource: filename, ofType: "txt"),
               let content = try? String(contentsOfFile: path, encoding: .utf8)

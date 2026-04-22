@@ -2,7 +2,7 @@
 //  WeeklyCalendarHelper.swift
 //  PulseCor
 //
-//calendar needed for dashboard view
+// Calendar needed for dashboard view, generates data for week strip view
 
 import Foundation
 

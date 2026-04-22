@@ -2,7 +2,7 @@
 //  DayStatus.swift
 //  PulseCor
 //
-//
+//  Combines check-in completion and medication logs into a unified day entry, represents a single day entry 
 import Foundation
 
 struct DayStatus: Identifiable {
