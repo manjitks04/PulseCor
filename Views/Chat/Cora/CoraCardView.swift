@@ -1,7 +1,10 @@
 //
 //  CoraCardView.swift
 //  PulseCor
-
+//
+//  Cora's daily insight card that rotates content based on day of week and check-in history.
+//  Shows tips (Mon/Wed/Thu/Sat), stats (Tue/Fri), or weekly reflection teaser (Sun).
+//
 
 import SwiftUI
 
@@ -25,6 +28,7 @@ struct CoraCardView: View {
     }
 }
 
+// Daily wellness tip card (shown Mon/Wed/Thu/Sat)
 private struct TipCard: View {
     let tip: CoraTip
     var body: some View {
@@ -53,6 +57,8 @@ private struct TipCard: View {
     }
 }
 
+// Weekly stat insight card (shown Tue/Fri)
+// Displays personalied data-driven insight from past week's check-ins
 private struct StatCard: View {
     let text: String
     var body: some View {
@@ -78,6 +84,8 @@ private struct StatCard: View {
     }
 }
 
+// Sunday teaser card with button to view full weekly reflection
+// Shows brief preview stat and prompts user to open full reflection
 private struct SundayTeaserCard: View {
     let stat: String
     var onViewReflection: (() -> Void)?
@@ -113,6 +121,8 @@ private struct SundayTeaserCard: View {
     }
 }
 
+// Alternative Sunday card showing top stat with reflection button
+// Used when user has not yet viewed this week's reflection
 private struct SundayTopStatCard: View {
     let text: String
     var onViewReflection: (() -> Void)?
@@ -148,6 +158,8 @@ private struct SundayTopStatCard: View {
     }
 }
 
+// Placeholder card shown when user has insufficient check-in history
+// Appears until user completes first week (4+ check-ins)
 private struct InsufficientDataCard: View {
     var body: some View {
         CardShell {
@@ -172,6 +184,7 @@ private struct InsufficientDataCard: View {
     }
 }
 
+// Reusable card container with consistent styling (background, border, shadow)
 private struct CardShell<Content: View>: View {
     @ViewBuilder let content: Content
     var body: some View {

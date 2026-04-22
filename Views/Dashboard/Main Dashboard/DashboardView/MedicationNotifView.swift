@@ -2,7 +2,10 @@
 //  MedicationNotifView.swift
 //  PulseCor
 //
+//  Bottom sheet displayed when medication reminder notification fires.
+//  Provides four action buttons: Taken, Skip, Remind me later, Dismiss.
 //
+
 import SwiftUI
 import SwiftData
 
@@ -17,12 +20,14 @@ struct MedicationAlertSheet: View {
     
     var body: some View {
         VStack(spacing: 0) {
+            // Drag handle
             RoundedRectangle(cornerRadius: 2)
                 .fill(Color(.systemGray4))
                 .frame(width: 40, height: 4)
                 .padding(.top, 12)
                 .padding(.bottom, 20)
             
+            // Medication info section with pill icon
             HStack(spacing: 14) {
                 Image("PillFill")
                     .resizable()
@@ -37,7 +42,7 @@ struct MedicationAlertSheet: View {
                         .foregroundColor(Color("MainText"))
                     
                     Text("Dosage: \(dosage)")
-                        .font(.appCardTitle) // 14
+                        .font(.appCardTitle)
                         .foregroundColor(.secondary)
                     
                     Text("Scheduled for \(scheduledTime)")
@@ -65,6 +70,7 @@ struct MedicationAlertSheet: View {
             .padding(.horizontal, 20)
             .padding(.bottom, 12)
             
+            // Action buttons grid (2x2 layout)
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
                 MedicationActionButton(title: "Taken", background: AnyView(
                     LinearGradient(colors: [Color("AccentCoral"), Color("AccentPink")],
@@ -75,10 +81,12 @@ struct MedicationAlertSheet: View {
                     Color(.systemGray6)
                 ), foregroundColor: Color("MainText"), action: onSkip)
                 
+                // Snooze schedules a 2-minute reminder via NotificationService
                 MedicationActionButton(title: "Remind me later", background: AnyView(
                     Color.orange.opacity(0.12)
                 ), foregroundColor: .orange, action: onSnooze)
                 
+                // Dismiss closes sheet without logging any action
                 MedicationActionButton(title: "Dismiss", background: AnyView(
                     Color.blue.opacity(0.10)
                 ), foregroundColor: .blue, action: onDismiss)
@@ -91,6 +99,7 @@ struct MedicationAlertSheet: View {
     }
 }
 
+// Individual action button in medication alert sheet
 private struct MedicationActionButton: View {
     let title: String
     let background: AnyView

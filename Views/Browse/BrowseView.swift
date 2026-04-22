@@ -2,6 +2,10 @@
 //  BrowseView.swift
 //  PulseCor
 //
+//  Main Browse tab showing three category buttons and three sections of featured articles.
+//  Articles are shuffled once per session and cached in BrowseViewModel.
+//
+
 import SwiftUI
 import SwiftData
 
@@ -20,6 +24,7 @@ struct BrowseView: View {
 
                         VStack(spacing: 24) {
 
+                            // Category navigation buttons (Cardiovascular, Sleep, General Wellness)
                             HStack(alignment: .top, spacing: 0) {
                                 CategoryNavButton(category: .cardiovascular)
                                 CategoryNavButton(category: .sleep)
@@ -27,6 +32,8 @@ struct BrowseView: View {
                             }
                             .padding(.top, 25)
 
+                            // Three sections of 3 articles each (9 total)
+                            // Articles are randomly selected from Browse-visible pool
                             Group {
                                 ArticleSection(title: "General Tips", articles: viewModel.browseSection1)
                                 ArticleSection(title: "Ideas to try", articles: viewModel.browseSection2)
@@ -51,7 +58,8 @@ struct BrowseView: View {
     }
 }
 
-
+// Category navigation button with icon and label.
+// Tapping navigates to CategoryDetailView for that health topic.
 struct CategoryNavButton: View {
     let category: ArticleCategory
 
@@ -61,7 +69,7 @@ struct CategoryNavButton: View {
                 Image(systemName: category.sfSymbol)
                     .font(.system(size: 48, weight: .medium))
                     .foregroundColor(.gray)
-                    .frame(height: 52) 
+                    .frame(height: 52)
 
                 Text(category.rawValue)
                     .font(.system(size: 11, weight: .medium))
@@ -76,6 +84,7 @@ struct CategoryNavButton: View {
         .buttonStyle(CategoryNavButtonStyle())
     }
 }
+
 private struct CategoryNavButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
@@ -84,7 +93,7 @@ private struct CategoryNavButtonStyle: ButtonStyle {
     }
 }
 
-
+// Section containing title and 3-column grid of article cards
 struct ArticleSection: View {
     let title: String
     let articles: [Article]
@@ -101,6 +110,7 @@ struct ArticleSection: View {
                 .font(.system(size: 20, weight: .bold))
                 .foregroundColor(Color("MainText"))
 
+            // Shows placeholder skeleton if articles not loaded yet
             if articles.isEmpty {
                 LazyVGrid(columns: columns, spacing: 10) {
                     ForEach(0..<3, id: \.self) { _ in
@@ -120,6 +130,7 @@ struct ArticleSection: View {
     }
 }
 
+// Compact article card with image, gradient overlay, and title.
 struct ArticleCard: View {
     let article: Article
 
@@ -139,6 +150,7 @@ struct ArticleCard: View {
                     .frame(width: geo.size.width, height: geo.size.height)
                     .clipped()
 
+                    // Dark gradient overlay for text readability
                     LinearGradient(
                         gradient: Gradient(colors: [.clear, .black.opacity(0.8)]),
                         startPoint: .center,

@@ -2,6 +2,10 @@
 //  Settings.swift
 //  PulseCor
 //
+//  Settings view with user profile, badges, appearance, health sync, notifications, and medications
+//  Includes onboarding integration with auto-scroll and overlay coordination
+//
+
 import SwiftUI
 import Combine
 import SwiftData
@@ -17,6 +21,7 @@ struct SettingsView: View {
     @State private var isEditingName: Bool = false
     @ObservedObject private var healthManager = HealthKitManager.shared
 
+    // All notification and health settings persisted to UserDefaults via @AppStorage
     @AppStorage("healthSyncEnabled") private var healthSyncEnabled: Bool = false
     @AppStorage("isDarkMode") private var isDarkMode: Bool = false
     @AppStorage("dailyCheckInEnabled") private var dailyCheckInEnabled: Bool = true
@@ -40,6 +45,7 @@ struct SettingsView: View {
                 ScrollView {
                     VStack(spacing: 24) {
 
+                        // User profile section with inline name editing
                         HStack(spacing: 16) {
                             Image(currentUser?.profilePic ?? "PFP 1")
                                 .resizable()
@@ -86,6 +92,7 @@ struct SettingsView: View {
                         StreakBadgesSection(currentStreak: currentUser?.currentStreak ?? 0)
                             .id("settings-badges")
 
+                        // Appearance toggle with preview images
                         VStack(alignment: .leading, spacing: 16) {
                             Text("App Appearance")
                                 .id("settings-appearance")
@@ -130,6 +137,7 @@ struct SettingsView: View {
                         }
                         .padding(.horizontal)
 
+                        // Health Data sync toggle
                         VStack(alignment: .leading, spacing: 16) {
                             Text("Health Data")
                                 .id("settings-health")
@@ -146,6 +154,8 @@ struct SettingsView: View {
                                         }
                                     }
                                     Spacer()
+                                    // When toggled on, requests HealthKit auth and syncs data
+                                    // When toggled off, clears cached health data from SwiftData
                                     Toggle("", isOn: $healthSyncEnabled).labelsHidden().tint(Color("AccentPink"))
                                         .onChange(of: healthSyncEnabled) { _, newValue in
                                             if newValue {
@@ -173,10 +183,12 @@ struct SettingsView: View {
                         }
                         .padding()
 
+                        // Notification settings section
                         VStack(alignment: .leading, spacing: 16) {
                             EmptyView().id("settings-notifications")
                             Text("Notifications").font(.title).fontWeight(.semibold).foregroundColor(Color("TextBlue"))
 
+                            // Daily check-in reminder with time picker
                             VStack(spacing: 12) {
                                 HStack {
                                     Text("Daily Check - In").font(.body).foregroundColor(Color("MainText"))
@@ -194,6 +206,7 @@ struct SettingsView: View {
                             .padding().background(Color("CardBG")).cornerRadius(12)
                             .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.gray.opacity(0.2), lineWidth: 1))
 
+                            // Weekly reflection reminder (Sundays only) with time picker
                             VStack(spacing: 12) {
                                 HStack {
                                     Text("Weekly Reflection").font(.body).foregroundColor(Color("MainText"))
@@ -214,6 +227,7 @@ struct SettingsView: View {
                             .padding().background(Color("CardBG")).cornerRadius(12)
                             .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.gray.opacity(0.2), lineWidth: 1))
 
+                            // Gentle nudge reminder (fires 2 days after last check-in at 9:30pm)
                             VStack(spacing: 12) {
                                 HStack {
                                     Text("Gentle Nudge").font(.body).foregroundColor(Color("MainText"))
@@ -232,6 +246,7 @@ struct SettingsView: View {
                         }
                         .padding()
 
+                        // Medication reminders section with add/edit/delete
                         VStack(alignment: .leading, spacing: 16) {
                             EmptyView().id("settings-medication")
                             HStack {
@@ -264,20 +279,24 @@ struct SettingsView: View {
                             }
                         }
 
+                        // Spacer that expands during onboarding to prevent bottom sheet overlap
                         SettingsOnboardingSpacerAdapter()
                     }
                 }
                 .background(Color("MainBG"))
+                // Background view that handles auto-scrolling during onboarding
                 .background(SettingsOnboardingScrollAdapter(proxy: proxy))
                 .navigationTitle("Settings")
                 .navigationBarTitleDisplayMode(.large)
                 .task {
+                    // Initialse ViewModels and sync health data if enabled (skips during onboarding)
                     settingsViewModel.setContext(modelContext)
                     medicationViewModel.setContext(modelContext)
                     if healthSyncEnabled && !OnboardingViewModel.shared.isActive {
                         await HealthKitService.shared.syncWeeklySummary(context: modelContext)
                     }
                 }
+                // Bottom sheet overlay for onboarding steps within Settings
                 .overlay { SettingsOnboardingOverlay() }
             }
         }
@@ -309,7 +328,8 @@ struct SettingsView: View {
     }
 }
 
-// Only re-renders when isActive or isSettingsStep changes.
+// Adds bottom padding during onboarding to prevent content being hidden by bottom sheet.
+// Only re-renders when isActive or isSettingsStep changes to avoid performance impact.
 private struct SettingsOnboardingSpacerAdapter: View {
     @ObservedObject private var onboarding = OnboardingViewModel.shared
 
@@ -320,7 +340,8 @@ private struct SettingsOnboardingSpacerAdapter: View {
     }
 }
 
-// SettingsView never re-renders when onboarding step changes.
+// Invisible background view that auto-scrolls to relevant section during onboarding.
+// Prevents SettingsView from re-rendering on every step change.
 private struct SettingsOnboardingScrollAdapter: View {
     @ObservedObject private var onboarding = OnboardingViewModel.shared
     let proxy: ScrollViewProxy
@@ -343,6 +364,7 @@ private struct SettingsOnboardingScrollAdapter: View {
     }
 }
 
+// Calls onChange callback after each adjustment to reschedule notification.
 private struct TimePickerRow: View {
     @Binding var hour: Int
     @Binding var minute: Int
@@ -374,8 +396,4 @@ private struct TimePickerRow: View {
             }
         }
     }
-}
-
-#Preview {
-    SettingsView().modelContainer(for: [User.self, Medication.self, MedicationLog.self])
 }

@@ -2,11 +2,13 @@
 //  HeroCheckInCard.swift
 //  PulseCor
 //
-//  Receives hasCheckedInToday as a parameter
-//  The parent View (ChatView) provides the value via @Query at screen level.
+//  Gradient hero card prompting user to start daily check-in with Cora.
+//  Routes to ConversationView or AlreadyCheckedInView based on completion status.
+//
 
 import SwiftUI
 
+// Navigation destinations for check-in card button
 enum CheckInDestination: Hashable {
     case conversation
     case alreadyCheckedIn
@@ -31,6 +33,7 @@ struct HeroCheckInCard: View {
                 .padding(.top, 45)
                 .padding(.leading, 20)
 
+                // Button navigates to conversation flow or completion screen
                 NavigationLink(value: hasCheckedInToday ? CheckInDestination.alreadyCheckedIn : .conversation) {
                     Text("Let's go!")
                         .font(.appSubtitleSemibold)
@@ -47,6 +50,7 @@ struct HeroCheckInCard: View {
         }
         .frame(height: 180)
         .background(
+            // Gradient background with decorative blurred circle overlay
             ZStack(alignment: .topLeading) {
                 LinearGradient(
                     colors: [Color("AccentCoral"), Color("AccentPink")],

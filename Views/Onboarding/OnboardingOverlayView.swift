@@ -205,6 +205,7 @@ private struct FeatureSlide: View {
                     .padding(.horizontal, 24)
                     .padding(.bottom, 24)
 
+                    // Tab switch button, triggers navigation and advances step after delay
                     if isTabStep {
                         VStack(spacing: 12) {
                             Button(action: {
@@ -248,7 +249,7 @@ private struct FeatureSlide: View {
                                 .padding(.bottom, 8)
                         }
                     }
-
+                    // Standard navigation buttons for non-tab steps
                     if !isTabStep {
                         HStack(spacing: 12) {
                             if step.rawValue > 1 {

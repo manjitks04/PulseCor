@@ -2,6 +2,8 @@
 //  AddMedicationSheet.swift
 //  PulseCor
 //
+// Modal sheet for adding new medications or editing existing ones
+//
 import SwiftUI
 
 struct AddMedicationSheet: View {
@@ -18,6 +20,9 @@ struct AddMedicationSheet: View {
 
     let frequencies = ["Before Breakfast", "After Breakfast", "Before Lunch", "After Lunch", "Before Dinner", "After Dinner", "Before Bed"]
 
+    // Initialises sheet in either add or edit mode
+    // If medicationToEdit is provided, pre-fills form with existing values
+    // Parses reminderTimes from "HH:mm" string format to (hour, minute) tuples
     init(viewModel: MedicationViewModel, medicationToEdit: Medication? = nil) {
         self.viewModel = viewModel
         self.medicationToEdit = medicationToEdit
@@ -112,6 +117,8 @@ struct AddMedicationSheet: View {
         }
     }
 
+    // Converts reminder times to "HH:mm" format and calls appropriate ViewModel method
+    // Creates new medication or updates existing one based on medicationToEdit state
     private func saveMedication() {
         let times: [String] = enableReminder
             ? reminderTimes.map { String(format: "%02d:%02d", $0.hour, $0.minute) }

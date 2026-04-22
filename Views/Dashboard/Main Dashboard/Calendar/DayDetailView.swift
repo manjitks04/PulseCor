@@ -2,6 +2,10 @@
 //  DayDetailView.swift
 //  PulseCor
 //
+//  Detailed view for a single day showing check-in status and medication logs.
+//  Accessed by tapping a day in the calendar grid.
+//
+
 import SwiftUI
 
 struct DayDetailView: View {
@@ -22,10 +26,12 @@ struct DayDetailView: View {
         return "\(day)\(suffix) \(formatter.string(from: dayStatus.date))"
     }
 
+    // Counts medications marked as taken (for summary pill)
     private var medsTakenCount: Int {
         dayStatus.medicationLogs.filter { $0.status == .taken }.count
     }
 
+    // All medication logs for this day
     private var medicationEntries: [(name: String, dosage: String, status: MedicationStatus)] {
         dayStatus.medicationLogs
     }
@@ -64,6 +70,7 @@ struct DayDetailView: View {
         }
     }
 
+    // Top header showing day of week and formatted date
     private var headerSection: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(dayOfWeek)
@@ -80,6 +87,7 @@ struct DayDetailView: View {
         .padding(.bottom, 20)
     }
 
+    // Summary pills showing activity overview (check-in status, meds taken count)
     private var summaryPills: some View {
         HStack(spacing: 8) {
             if dayStatus.hasCheckIn {
@@ -99,6 +107,7 @@ struct DayDetailView: View {
         .padding(.bottom, 28)
     }
 
+    // Check-in section showing whether user completed daily check-in
     private var checkInSection: some View {
         VStack(alignment: .leading, spacing: 10) {
             DaySectionLabel(text: "Daily Check-In")
@@ -121,10 +130,12 @@ struct DayDetailView: View {
         .padding(.bottom, 8)
     }
 
+    // Medication section showing each logged medication with status badges
     private var medicationSection: some View {
         VStack(alignment: .leading, spacing: 10) {
             DaySectionLabel(text: "Medications")
 
+            // One card per medication log (taken, skipped, or snoozed)
             ForEach(medicationEntries.indices, id: \.self) { i in
                 let entry = medicationEntries[i]
                 DayEntryCard(

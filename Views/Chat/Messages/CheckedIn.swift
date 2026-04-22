@@ -2,7 +2,10 @@
 //  CheckedIn.swift
 //  PulseCor
 //
+//  Full-screen confirmation view shown when user has already completed daily check-in.
+//  Prevents duplicate check-ins on the same day.
 //
+
 import SwiftUI
 
 struct AlreadyCheckedInView: View {
@@ -52,9 +55,4 @@ struct AlreadyCheckedInView: View {
         .navigationTitle("Check-in")
         .navigationBarTitleDisplayMode(.inline)
     }
-}
-#Preview {
-   NavigationStack {
-       AlreadyCheckedInView()
-   }
 }

@@ -2,10 +2,14 @@
 //  DashboardView.swift
 //  PulseCor
 //
+//  Main dashboard with calendar, check-in hero card, stats, and featured articles.
+//  Handles medication reminder sheets triggered by notifications.
+//
 
 import SwiftUI
 import SwiftData
 
+// Sheet types that can be presented from dashboard
 enum DashboardSheet: Identifiable {
     case medication(PendingMedication)
     case calendar
@@ -42,6 +46,7 @@ struct DashboardView: View {
 
     private var currentStreak: Int { users.first?.currentStreak ?? 0 }
 
+    // Counts check-ins from start of current week (Sunday) to now
     private var weeklyCheckInCount: Int {
         let calendar = Calendar.current
         guard let weekStart = calendar.dateInterval(of: .weekOfYear, for: Date())?.start else { return 0 }
@@ -53,7 +58,7 @@ struct DashboardView: View {
             ScrollView {
                 VStack(spacing: 24) {
                     
-                    //Header & Profile
+                    // Header & Profile
                     HStack(alignment: .firstTextBaseline) {
                         VStack(alignment: .leading, spacing: 4) {
                           Text("Hi there, \(users.first?.name ?? "Partner")👋")
@@ -74,12 +79,13 @@ struct DashboardView: View {
                     .padding(.top, 20)
 
                     // Main Check-in Card (The "Hero" Card)
+                    // Shows current week calendar and check-in prompt
                     VStack(spacing: 20) {
                         Text(monthYear)
                             .font(.headline)
                             .foregroundColor(.white.opacity(0.9))
 
-                        // Weekly Calendar Row
+                        // Weekly Calendar Row, tappable to open full calendar
                         HStack(spacing: 0) {
                             ForEach(weekDays) { day in
                                 Button(action: { activeSheet = .calendar }) {
@@ -103,6 +109,7 @@ struct DashboardView: View {
                             }
                         }
 
+                        // Check-in prompt button
                         VStack(spacing: 12) {
                             Text("Ready to check in...?")
                                 .font(.title3)
@@ -126,14 +133,14 @@ struct DashboardView: View {
                     .cornerRadius(cardCornerRadius)
                     .padding(.horizontal, horizontalPadding)
 
-                    //Stats Grid
+                    // Stats Grid showing weekly check-ins and current streak
                     HStack(spacing: 16) {
                         WeeklyCheckIn(completedDays: weeklyCheckInCount)
                         StreakCard(currentStreak: currentStreak)
                     }
                     .padding(.horizontal, horizontalPadding)
 
-                    //Featured Articles
+                    // Featured Articles carousel
                     VStack(alignment: .leading, spacing: 16) {
                         Text("For you today")
                             .font(.title2)
@@ -156,8 +163,10 @@ struct DashboardView: View {
             }
             .background(Color("MainBG").ignoresSafeArea())
             .navigationBarHidden(true)
+            // Invisible background view that coordinates Settings sheet with onboarding
             .background(DashboardOnboardingAdapter(activeSheet: $activeSheet))
             .task {
+                // Initialise ViewModel and create default user if needed
                 viewModel.setContext(modelContext)
                 if users.isEmpty {
                     let profilePics = (1...10).map { "PFP \($0)" }
@@ -165,16 +174,19 @@ struct DashboardView: View {
                 }
             }
             .onAppear {
+                // Shuffle and select 3 random articles for featured section
                 if featuredArticles.isEmpty {
                     featuredArticles = Array(browseArticles.shuffled().prefix(3))
                 }
                 viewModel.loadDashboardData()
             }
+            // Handles app returning from background, checks for pending medication notifications
             .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
                 navManager.restorePendingMedicationIfNeeded()
                 showMedicationIfPending()
                 viewModel.loadDashboardData()
             }
+            // Watches for medication notifications set by NotificationService
             .onReceive(navManager.$pendingMedication) { med in
                 if med != nil { showMedicationIfPending() }
             }
@@ -209,6 +221,8 @@ struct DashboardView: View {
         }
     }
 
+    // Returns appropriate destination based on whether user has already checked in today.
+    // Prevents duplicate check-ins on same day.
     @ViewBuilder
     private func destinationView() -> some View {
         if viewModel.hasCheckedInToday {
@@ -218,6 +232,8 @@ struct DashboardView: View {
         }
     }
 
+    // Displays medication sheet if pending medication exists.
+    // Adds 400ms delay to prevent animation conflicts when navigating from notification.
     private func showMedicationIfPending() {
         guard let med = navManager.pendingMedication else { return }
         if case .medication(let current) = activeSheet, current == med { return }
@@ -227,11 +243,13 @@ struct DashboardView: View {
         }
     }
 
+    // Clears pending medication state and dismisses sheet.
     private func dismissMedicationSheet() {
         navManager.pendingMedication = nil
         activeSheet = nil
     }
 
+    // Logs medication action to database and dismisses sheet.
     private func logMedication(med: PendingMedication, status: MedicationStatus) {
         viewModel.logMedicationAction(med: med, status: status)
         dismissMedicationSheet()
@@ -239,6 +257,7 @@ struct DashboardView: View {
 }
 
 // Article Card Component
+// Compact card with image, gradient overlay, and title for featured articles carousel
 struct DashboardArticleCard: View {
     let article: Article
 
@@ -276,7 +295,8 @@ struct DashboardArticleCard: View {
     }
 }
 
-//Onboarding Adapter
+// Onboarding Adapter
+// Invisible background view that opens Settings sheet during onboarding when required
 private struct DashboardOnboardingAdapter: View {
     @ObservedObject private var onboarding = OnboardingViewModel.shared
     @Binding var activeSheet: DashboardSheet?

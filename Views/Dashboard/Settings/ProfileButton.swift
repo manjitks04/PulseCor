@@ -19,6 +19,3 @@ struct ProfileButton: View {
     }
 }
 
-#Preview {
-    ProfileButton(user: User(name: "Test User"))
-}

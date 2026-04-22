@@ -2,6 +2,9 @@
 //  ConversationView.swift
 //  PulseCor
 //
+//  Chat interface for daily check-in conversation with Cora.
+//  Displays message bubbles, typing indicator, and quick reply buttons.
+//
 
 import SwiftUI
 import SwiftData
@@ -20,8 +23,10 @@ struct ConversationView: View {
         .background(Color("MainBG"))
         .onAppear {
             viewModel.setContext(modelContext)
+            // Starts check-in flow if no messages exist (first visit or new session)
             if viewModel.messages.isEmpty { viewModel.startDailyCheckIn() }
         }
+        // Badge unlock sheet appears when user reaches new streak milestone
         .sheet(item: $viewModel.unlockedBadge) { badge in
             BadgeUnlockSheet(badge: badge) { viewModel.unlockedBadge = nil }
                 .presentationDetents([.medium])
@@ -29,6 +34,7 @@ struct ConversationView: View {
         }
     }
 
+    // Scrollable message list with auto-scroll to bottom
     private var messageList: some View {
         ScrollViewReader { proxy in
             ScrollView {
@@ -40,6 +46,7 @@ struct ConversationView: View {
                             UserMessageBubble(message: message.content)
                         }
                     }
+                    // Typing indicator shown while Cora is "thinking"
                     if viewModel.isTyping { TypingIndicator() }
                     Color.clear.frame(height: 1).id("bottomOfMessages")
                 }
@@ -53,6 +60,7 @@ struct ConversationView: View {
         }
     }
 
+    // Quick reply buttons shown when Cora offers multiple choice responses
     @ViewBuilder
     private var quickReplies: some View {
         if !viewModel.currentQuickReplies.isEmpty {
@@ -63,6 +71,7 @@ struct ConversationView: View {
     }
 }
 
+// Cora's message bubble (left-aligned, card background)
 struct CoraMessageBubble: View {
     let message: String
     var body: some View {
@@ -77,6 +86,7 @@ struct CoraMessageBubble: View {
     }
 }
 
+// User's message bubble (right-aligned, coral gradient)
 struct UserMessageBubble: View {
     let message: String
     var body: some View {
@@ -92,6 +102,7 @@ struct UserMessageBubble: View {
     }
 }
 
+// Animated three-dot typing indicator shown while Cora is composing response
 struct TypingIndicator: View {
     @State private var animating = false
     var body: some View {

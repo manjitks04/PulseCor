@@ -2,6 +2,10 @@
 //  CalendarView.swift
 //  PulseCor
 //
+//  Full calendar grid view showing all months from November 2025 to present.
+//  Each day displays check-in and medication status indicators.
+//
+
 import SwiftUI
 import SwiftData
 
@@ -9,6 +13,8 @@ struct CalendarView: View {
     @Environment(\.modelContext) private var modelContext
     @StateObject private var viewModel = CalendarViewModel()
     @Environment(\.dismiss) private var dismiss
+    
+    // Day of week headers for calendar grid (Monday-first week)
     private let dayHeaders = ["M", "T", "W", "T", "F", "S", "S"]
 
     var body: some View {
@@ -19,6 +25,7 @@ struct CalendarView: View {
                         if viewModel.isLoading {
                             ProgressView().padding(.top, 60)
                         } else {
+                            // Renders one MonthGroupView per month from app start to present
                             ForEach(viewModel.monthGroups.indices, id: \.self) { monthIndex in
                                 MonthGroupView(group: viewModel.monthGroups[monthIndex], dayHeaders: dayHeaders)
                                     .id(monthIndex)
@@ -28,6 +35,7 @@ struct CalendarView: View {
                     .padding(.vertical, 16)
                 }
                 .onAppear {
+                    // Auto-scrolls to current month after brief delay
                     Task {
                         try? await Task.sleep(for: .seconds(0.2))
                         withAnimation {
@@ -42,6 +50,7 @@ struct CalendarView: View {
             .navigationTitle("Calendar")
             .navigationBarTitleDisplayMode(.inline)
             .task {
+                // Loads all months and activity data from SwiftData
                 viewModel.setContext(modelContext)
                 viewModel.load()
             }
@@ -54,17 +63,23 @@ struct CalendarView: View {
     }
 }
 
+// Renders a single month's calendar grid with header and week rows
 struct MonthGroupView: View {
-    let group: MonthGroup; let dayHeaders: [String]
+    let group: MonthGroup
+    let dayHeaders: [String]
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text(group.monthTitle).font(.title3).fontWeight(.bold).foregroundColor(Color("TextBlue")).padding(.horizontal, 20)
+            
             HStack(spacing: 0) {
                 ForEach(dayHeaders, id: \.self) { letter in
                     Text(letter).font(.caption).fontWeight(.semibold).foregroundColor(.secondary).frame(maxWidth: .infinity)
                 }
             }
             .padding(.horizontal, 12)
+            
+            // Week rows (each row contains 7 days)
             ForEach(group.weeks.indices, id: \.self) { weekIndex in
                 WeekRowView(week: group.weeks[weekIndex]).padding(.horizontal, 12)
             }
@@ -73,15 +88,20 @@ struct MonthGroupView: View {
     }
 }
 
+// Renders a single week row (7 day cells)
 struct WeekRowView: View {
     let week: [DayStatus]
+    
     var body: some View {
         HStack(spacing: 0) {
             ForEach(week) { day in
+                // Placeholder cells for leading/trailing empty days
                 if day.isPlaceholder {
                     Color.clear.frame(maxWidth: .infinity).frame(height: 64)
+                // Future days are not tappable
                 } else if day.isFuture {
                     CalendarDayCell(day: day).frame(maxWidth: .infinity)
+                // Past/present days link to detail view
                 } else {
                     NavigationLink(destination: DayDetailView(dayStatus: day)) {
                         CalendarDayCell(day: day).frame(maxWidth: .infinity)
@@ -93,16 +113,22 @@ struct WeekRowView: View {
     }
 }
 
+// Individual day cell showing date number and activity indicators
 struct CalendarDayCell: View {
     let day: DayStatus
+    
     private var dayNumber: Int { Calendar.current.component(.day, from: day.date) }
+    
     var body: some View {
         VStack(spacing: 6) {
+            // Day number (circled if today, dimmed if future)
             Text("\(dayNumber)")
                 .font(.system(size: 16, weight: day.isToday ? .bold : .regular))
                 .foregroundColor(day.isToday ? .white : day.isFuture ? Color("MainText").opacity(0.25) : Color("MainText"))
                 .frame(width: 36, height: 36)
                 .background(Circle().fill(day.isToday ? Color("FillBlue") : Color.clear))
+            
+            // Activity indicator dots (pink = check-in, coral = medication)
             HStack(spacing: 4) {
                 if !day.isFuture {
                     Circle().fill(day.hasCheckIn ? Color("AccentPink") : Color.clear).frame(width: 6, height: 6)

@@ -2,17 +2,25 @@
 //  DailyStreakTracker.swift
 //  PulseCor
 //
+//  Weekly check-in progress tracker showing 7-day cycle with point rewards.
+//  Displays current day in cycle, progress bar, and total points earned.
+//
+
 import SwiftUI
 import SwiftData
 
 struct DailyStreakTracker: View {
     let currentDay: Int
+    
+    // Point rewards for each day of the week
     let rewards = [5, 5, 10, 10, 15, 15, 25]
 
     var body: some View {
+        // Maps overall streak to current position in 7-day cycle
         let displayDay = currentDay == 0 ? 0 : currentDay % 7 == 0 ? 7 : currentDay % 7
 
         VStack(spacing: 12) {
+            // Header with dynamic encouragement message
             HStack {
                 VStack(alignment: .leading, spacing: 3) {
                     Text("Daily check in")
@@ -27,12 +35,14 @@ struct DailyStreakTracker: View {
                 Spacer()
             }
 
+            // 7-day progress cards
             HStack(spacing: 6) {
                 ForEach(1...7, id: \.self) { day in
                     DayCard(day: day, reward: rewards[day - 1], isCompleted: day <= displayDay, isCurrent: day == displayDay)
                 }
             }
 
+            // Progress bar showing completion through the week
             GeometryReader { geometry in
                 ZStack(alignment: .leading) {
                     Rectangle().fill(Color.gray.opacity(0.3)).frame(height: 4)
@@ -45,6 +55,7 @@ struct DailyStreakTracker: View {
             .frame(height: 4)
             .padding(.horizontal, 4)
 
+            // Footer showing total streak and points earned this cycle
             HStack {
                 Text("Current streak: \(currentDay) day\(currentDay != 1 ? "s" : "")")
                     .font(.appBodySemibold)

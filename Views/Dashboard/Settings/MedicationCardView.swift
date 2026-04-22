@@ -2,6 +2,10 @@
 //  MedicationCardView.swift
 //  PulseCor
 //
+//  Displays single medication card with reminder times in Settings
+//  Uses FlowLayout to wrap reminder time pills naturally
+//
+
 import Foundation
 import SwiftUI
 
@@ -74,6 +78,8 @@ struct MedicationCard: View {
     }
 }
 
+// Custom layout that wraps subviews to next line when they exceed container width
+// Used to display medication reminder times as flowing pills
 private struct FlowLayout: Layout {
     var spacing: CGFloat = 8
 

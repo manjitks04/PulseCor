@@ -32,6 +32,7 @@ struct HealthView: View {
                                     Text("Last 7 days")
                                         .font(.subheadline)
                                         .foregroundColor(.secondary)
+                                    // Shows spinner when HealthKit is actively fetching data
                                     if viewModel.isSyncing {
                                         ProgressView()
                                             .scaleEffect(0.7)
@@ -43,6 +44,7 @@ struct HealthView: View {
                         .padding(.horizontal)
                         .padding(.top, 55)
 
+                        // descriptions for users to understand metrics
                         HealthMetricCard(
                             icon: "figure.walk",
                             title: "Steps",
@@ -96,7 +98,11 @@ struct HealthView: View {
             .background(Color("MainBG"))
             .navigationBarHidden(true)
             .task {
+                // runs when health tab appears
+                //1. injects modelcontext into VM
                 viewModel.setContext(context)
+                //2. syncs healthkit data is allowed and >1hour since previous sync
+                // Uses stepEntries.first?.date as proxy for last sync time
                 if !OnboardingViewModel.shared.isActive {
                     await viewModel.syncIfNeeded(
                         healthSyncEnabled: healthSyncEnabled,
@@ -108,11 +114,3 @@ struct HealthView: View {
     }
 }
 
-#Preview {
-    HealthView(
-        stepEntries: [],
-        heartRateEntries: [],
-        restingEntries: [],
-        hrvEntries: []
-    )
-}

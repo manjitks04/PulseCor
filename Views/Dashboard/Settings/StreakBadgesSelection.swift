@@ -2,6 +2,9 @@
 //  StreakBadgesSection.swift
 //  PulseCor
 //
+//  Displays earned and locked streak badges in Settings
+//  Shows 7 badges in two rows (4 top, 3 bottom) with unlock animations
+//
 
 import SwiftUI
 
@@ -43,6 +46,8 @@ struct StreakBadgesSection: View {
     }
 }
 
+// Individual badge tile showing lock/unlock state with animation
+// Unlocked badges show full color and saturation, locked badges are grayscale and dim
 private struct BadgeTile: View {
     let badge: StreakBadge
     let isUnlocked: Bool

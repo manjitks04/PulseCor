@@ -2,6 +2,10 @@
 //  ChatView.swift
 //  PulseCor
 //
+//  Main Cora tab view showing hero check-in card, streak tracker, and daily/weekly cards.
+//  Handles weekly reflection trigger from notifications and onboarding coordination.
+//
+
 import SwiftUI
 import SwiftData
 
@@ -27,16 +31,23 @@ struct ChatView: View {
                         ZStack(alignment: .topTrailing) {
 
                             VStack(spacing: 16) {
+                                // Hero card with check-in prompt or completion status
                                 HeroCheckInCard(
                                     userName: users.first?.name ?? "there",
                                     hasCheckedInToday: viewModel.hasCheckedInToday
                                 )
+                                
+                                // Weekly streak progress tracker (0-7 days)
                                 DailyStreakTracker(currentDay: viewModel.currentStreak)
+                                
+                                // Daily tip or weekly reflection card (rotates by day of week)
                                 CoraCardView(
                                     cardType: viewModel.cardType,
                                     onViewReflection: { viewModel.shouldShowReflection = true }
                                 )
                                 .id("cora-card")
+                                
+                                // Spacer expands during onboarding to prevent bottom sheet overlap
                                 ChatOnboardingSpacerAdapter()
                             }
                             .padding(.top, 85)
@@ -49,15 +60,18 @@ struct ChatView: View {
                             }
                         }
                     }
+                    // Invisible background view that handles auto-scroll during onboarding
                     .background(ChatOnboardingScrollAdapter(proxy: proxy))
                     .onAppear {
                         viewModel.setContext(modelContext)
                         viewModel.loadCards(checkIns: checkIns)
                     }
+                    // Refreshes card type when check-ins count changes
                     .onChange(of: checkIns.count) {
                         viewModel.loadData()
                         viewModel.loadCards(checkIns: checkIns)
                     }
+                    // Watches for pending weekly reflection from notification
                     .onReceive(navManager.$pendingWeeklyReflection) { pending in
                         if pending {
                             viewModel.handlePendingWeeklyReflection(checkIns: checkIns)
@@ -66,6 +80,7 @@ struct ChatView: View {
                 }
             }
             .navigationBarHidden(true)
+            // Weekly reflection presented as full-screen cover
             .fullScreenCover(isPresented: $viewModel.shouldShowReflection) {
                 WeeklyReflectionView(userStreak: viewModel.currentStreak)
             }
@@ -73,6 +88,7 @@ struct ChatView: View {
     }
 }
 
+// Adds bottom padding during onboarding to prevent content being hidden by overlay
 private struct ChatOnboardingSpacerAdapter: View {
     @ObservedObject private var onboarding = OnboardingViewModel.shared
 
@@ -85,6 +101,7 @@ private struct ChatOnboardingSpacerAdapter: View {
     }
 }
 
+// Invisible background view that auto-scrolls to Cora card during onboarding
 private struct ChatOnboardingScrollAdapter: View {
     @ObservedObject private var onboarding = OnboardingViewModel.shared
     let proxy: ScrollViewProxy
