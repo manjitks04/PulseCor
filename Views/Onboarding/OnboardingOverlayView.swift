@@ -331,7 +331,7 @@ struct OnboardingStepInfo {
         case .coraCheckIn:
             return OnboardingStepInfo(icon: "checkmark.circle.fill", title: "Daily check-in", body: "Each day, Cora guides you through a short check-in covering sleep, hydration, stress, energy, and activity. It takes under 2 minutes.")
         case .coraCard:
-            return OnboardingStepInfo(icon: "lightbulb.fill", title: "Tips & insights", body: "Come back here daily. On most days Cora shares a wellness tip. On Tuesdays, Fridays, and Sundays she'll surface real insights drawn from your own data.")
+            return OnboardingStepInfo(icon: "lightbulb.fill", title: "Tips & insights", body: "Come back here daily. On most days Cora shares a wellness tip. On Tuesdays, Fridays, and Sundays Cora will surface real insights drawn from your own data.")
         case .openBrowse:
             return OnboardingStepInfo(icon: "heart.text.clipboard", title: "Explore health content", body: "Tap the Browse tab below to discover articles tailored to your health.")
         case .browseCategories:
