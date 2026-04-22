@@ -59,6 +59,8 @@ class WeeklyReflectionViewModel: ObservableObject {
     // Slide 7
     @Published var closingMessage: String = ""
 
+    // Computes all reflection data from last 7 days of check-ins, runs correlation analysis and generates personalised narratives
+
     func load(checkIns: [DailyCheckIn], userStreak: Int) {
         let sorted = lastWeekSorted(checkIns)
         checkInCount = sorted.count
@@ -79,6 +81,7 @@ class WeeklyReflectionViewModel: ObservableObject {
         hasViewedWeeklyReflection = true
     }
 
+    // Filters check-ins to last 7 days and sorts chronologically
     private func lastWeekSorted(_ checkIns: [DailyCheckIn]) -> [DailyCheckIn] {
         let cutoff = Calendar.current.date(byAdding: .day, value: -7, to: Date()) ?? Date()
         return checkIns.filter { $0.isComplete && $0.date >= cutoff }
@@ -138,6 +141,7 @@ class WeeklyReflectionViewModel: ObservableObject {
         }
     }
 
+    // Detects correlations between wellness metrics, only fires if correltion strength > 0.4 & sufficient data exists
     private func computeCorrelations(_ checkIns: [DailyCheckIn]) {
         guard checkIns.count >= 4 else { return }
         var found: [CorrelationInsight] = []
@@ -196,6 +200,8 @@ class WeeklyReflectionViewModel: ObservableObject {
         topCorrelations = Array(found.sorted { $0.strength > $1.strength }.prefix(2))
     }
 
+    // Generates headline insight based on check-in count and wellness averages
+    // Priority: high stress + perfect week > low sleep + perfect week > high energy + perfect week > else
     private func computeHeadline(_ checkIns: [DailyCheckIn]) {
         let s = avgStressOf(checkIns)
         let sl = avgSleepOf(checkIns)
@@ -218,6 +224,8 @@ class WeeklyReflectionViewModel: ObservableObject {
         }
     }
 
+    // Identifies biggest accomplishment of the week
+    // Priority order: 7/7 check-ins > 4+ calm days > 5+ hydrated days > good sleep > showed up on hardest day
     private func computeWeekWin(_ checkIns: [DailyCheckIn]) {
         if checkInCount == 7 {
             weekWin = "You completed every single check-in this week. No excuses, no skips, just showing up."
@@ -272,7 +280,8 @@ class WeeklyReflectionViewModel: ObservableObject {
             }
         }
     }
-
+    
+    // Converts SleepHours enum to numeric value for chart display and averaging
     func sleepHourValue(_ hours: SleepHours?) -> Double {
         switch hours {
         case .lessThanSix: return 5.0
@@ -302,6 +311,8 @@ class WeeklyReflectionViewModel: ObservableObject {
         guard !pts.isEmpty else { return 0 }
         return pts.map { $0.value }.reduce(0, +) / Double(pts.count)
     }
+    
+    // Converts date to single-letter weekday abbreviation
     private func dayLabel(for date: Date) -> String {
         let labels = ["S","M","T","W","T","F","S"]
         return labels[Calendar.current.component(.weekday, from: date) - 1]

@@ -2,11 +2,14 @@
 //  OnboardingViewModel.swift
 //  PulseCor
 //
+// Manages first-time onboarding tutorial flow with step-by-step UI overlays
+
 
 import SwiftUI
 import SwiftData
 import Combine
 
+// Each step corresponds to a specific spotlight overlay or instruction card
 enum OnboardingStep: Int, CaseIterable {
     case name = 0
     case dashboardCalendar
@@ -33,10 +36,11 @@ enum OnboardingStep: Int, CaseIterable {
 class OnboardingViewModel: ObservableObject {
     static let shared = OnboardingViewModel()
 
+    // Persists onboarding completion status to UserDefaults
     @AppStorage("hasCompletedOnboarding") var hasCompletedOnboarding: Bool = false
     @Published var currentStep: OnboardingStep = .name
-    @Published var isActive: Bool = false
-    @Published var isTransitioning: Bool = false
+    @Published var isActive: Bool = false // Set to false during transitions to prevent UI flicker
+    @Published var isTransitioning: Bool = false     // True during step transitions to temporarily hide overlay.
     @Published var shouldOpenSettings: Bool = false
 
     private init() {}
@@ -47,6 +51,7 @@ class OnboardingViewModel: ObservableObject {
         isActive = true
     }
 
+    // Advances to next onboarding step with spring animation
     func next() {
         let raw = currentStep.rawValue
         if raw < OnboardingStep.complete.rawValue {
@@ -70,7 +75,7 @@ class OnboardingViewModel: ObservableObject {
         shouldOpenSettings = isSettingsStep(prev)
     }
 
-    func skip() { complete() }
+    func skip() { complete() }     // Skips onboarding entirely -- immediately calls complete()
 
     func backWithoutAnimation() {
         let raw = currentStep.rawValue
@@ -89,6 +94,7 @@ class OnboardingViewModel: ObservableObject {
         }
     }
 
+    // Handles user tapping tabs during tutorial
     func handleTabTap(_ tab: AppTab) {
         switch currentStep {
         case .openCora where tab == .cora: next()
@@ -98,6 +104,7 @@ class OnboardingViewModel: ObservableObject {
         }
     }
 
+    // Resets to Home tab and persists completion to UserDefaults
     func complete() {
         withAnimation(.easeOut) {
             isActive = false
@@ -116,7 +123,8 @@ class OnboardingViewModel: ObservableObject {
         default: return false
         }
     }
-
+    
+    // True if current step requires user to switch tabs.
     var isTabSwitchStep: Bool {
         switch currentStep {
         case .openCora, .openBrowse, .openHealth: return true
@@ -124,6 +132,7 @@ class OnboardingViewModel: ObservableObject {
         }
     }
 
+    // Saves user's name to User model during onboarding name entry step
     func saveName(_ name: String, modelContext: ModelContext) {
         let trimmed = name.trimmingCharacters(in: .whitespaces)
         guard !trimmed.isEmpty else { return }

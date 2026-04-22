@@ -2,8 +2,8 @@
 //  ChatScreenViewModel.swift
 //  PulseCor
 //
-//  Responsibilities: Manages all screen-level state for ChatView.
-//  Includes: check-in status, streak, weekly reflection routing, and Cora card logic.
+//  Responsibilities: Manages all screen-level state for ChatView
+//  Includes: check-in status, streak, weekly reflection routing, and Cora card logic
 //  ModelContext: Injected via setContext(_:)
 //
 

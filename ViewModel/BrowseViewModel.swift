@@ -2,27 +2,33 @@
 //  BrowseViewModel.swift
 //  PulseCor
 //
+//  Manages article data for Browse tab and category detail views
+//  Implements session-based caching to prevent re-shuffling on tab switches
+//
+
+
 import Foundation
 import SwiftData
 import Combine
 @MainActor
 class BrowseViewModel: ObservableObject {
 
+    // Shuffles once per app session (reopeen)
     @Published var browseSection1: [Article] = []
     @Published var browseSection2: [Article] = []
     @Published var browseSection3: [Article] = []
 
     @Published var selectedCategoryArticles: [Article] = []
-    @Published var selectedCategoryFAQs: [Article] = []
 
     @Published var errorMessage: String?
 
     private var modelContext: ModelContext?
-    private static var hasLoadedThisSession = false
-    private static var categoryCache: [ArticleCategory: [Article]] = [:] 
+    private static var hasLoadedThisSession = false //prevents reshuffling, resets when app relaunches
+    private static var categoryCache: [ArticleCategory: [Article]] = [:] // caches category articles to avoid requerying
 
     init() {}
-
+    
+    // Sets ModelContext and triggers initial article load if first time this session, called from BrowseView.onAppear
     func setContext(_ context: ModelContext) {
         self.modelContext = context
         if !BrowseViewModel.hasLoadedThisSession {
@@ -52,7 +58,6 @@ class BrowseViewModel: ObservableObject {
         )
         BrowseViewModel.categoryCache[category] = articles
         selectedCategoryArticles = articles
-        selectedCategoryFAQs = all.filter { $0.category == category && $0.articleType == .faq }
     }
 
     private func fetchAllArticles() -> [Article] {

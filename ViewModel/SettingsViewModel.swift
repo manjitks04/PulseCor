@@ -23,6 +23,7 @@ class SettingsViewModel: ObservableObject {
         self.modelContext = context
     }
 
+    // Updates user's display name in User model
     func saveName(_ name: String) {
         guard let modelContext, !name.isEmpty else { return }
         var descriptor = FetchDescriptor<User>(predicate: #Predicate { $0.id == 1 })
@@ -37,6 +38,7 @@ class SettingsViewModel: ObservableObject {
         }
     }
 
+    // Deletes all cached HealthKit data, called when user taps "Clear Health Data" in Settings
     func clearHealthData() {
         guard let modelContext else { return }
         do {

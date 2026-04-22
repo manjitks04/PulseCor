@@ -2,6 +2,8 @@
 //  MedicationViewModel.swift
 //  PulseCor
 //
+//  Manages medication CRUD operations and coordinates with NotificationService
+
 import Foundation
 import SwiftData
 import Combine
@@ -9,6 +11,7 @@ import Combine
 @MainActor
 class MedicationViewModel: ObservableObject {
 
+    // Active medications (isActive = true) for display in Settings tab
     @Published var medications: [Medication] = []
     @Published var errorMessage: String?
 
@@ -24,6 +27,7 @@ class MedicationViewModel: ObservableObject {
         loadMedications()
     }
 
+    // Fetches all active medications from SwiftData, filters out soft-deleted medications (isActive = false)
     func loadMedications() {
         guard let modelContext else { return }
         let descriptor = FetchDescriptor<Medication>(predicate: #Predicate { $0.isActive == true })
@@ -47,6 +51,7 @@ class MedicationViewModel: ObservableObject {
         }
     }
 
+    // Soft-deletes medication by setting isActive = false
     func deleteMedication(_ medication: Medication) {
         guard let modelContext else { return }
         notificationService.cancelMedicationNotifications(medicationId: medication.localId.uuidString)
@@ -82,6 +87,7 @@ class MedicationViewModel: ObservableObject {
         }
     }
 
+    // Logs user's action on a medication (taken/skipped/snoozed)
     func logMedicationAction(medication: Medication, status: MedicationStatus, scheduledTime: String) {
         guard let modelContext else { return }
         let log = MedicationLog(

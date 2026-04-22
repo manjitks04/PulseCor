@@ -22,15 +22,16 @@ class ChatViewModel: ObservableObject {
 
     private var modelContext: ModelContext?
     private var currentSessionId: String = UUID().uuidString
-    var currentFlow: ConversationFlow?
+    var currentFlow: ConversationFlow?     // Set to nil when flow completes to prevent duplicate check-ins
 
     init() {}
 
     func setContext(_ context: ModelContext) {
-        self.modelContext = context
+        self.modelContext = context // restores any imcomplete conversation flow
         restoreOrCreateSession()
     }
 
+    // Loads persisted messages and reconstructs quick reply buttons for current step.
     private func restoreOrCreateSession() {
         guard let modelContext else { return }
         let descriptor = FetchDescriptor<ConversationFlow>(
@@ -76,6 +77,7 @@ class ChatViewModel: ObservableObject {
         Task { await processResponse(response, flow: flow) }
     }
 
+    // Each case handles one step, validates response, stores in tempData, advances to next step
     private func processResponse(_ response: String, flow: ConversationFlow) async {
         switch flow.currentStep {
 
@@ -147,6 +149,7 @@ class ChatViewModel: ObservableObject {
         }
     }
     
+    // Creates DailyCheckIn record from flow tempData, updates streak, and checks for badge unlock
     private func completeCheckIn(flow: ConversationFlow) async {
         guard let modelContext else { return }
         let checkIn = DailyCheckIn(
@@ -200,6 +203,7 @@ class ChatViewModel: ObservableObject {
         }
     }
 
+    // Checks if current streak unlocked a new badge and triggers badge overlay animation
     private func checkBadgeUnlock(newStreak: Int) {
         guard let badge = allBadgeDefinitions.first(where: { $0.requiredDays == newStreak }) else { return }
         unlockedBadge = badge
@@ -247,7 +251,8 @@ class ChatViewModel: ObservableObject {
         messages.append(message)
         currentQuickReplies = []
     }
-
+    
+    // Reconstructs quick reply buttons for current step after session restore
     func restoreQuickRepliesForCurrentStep() {
         guard let flow = currentFlow else { return }
         switch flow.currentStep {
@@ -261,6 +266,8 @@ class ChatViewModel: ObservableObject {
         default:               currentQuickReplies = []
         }
     }
+    
+    // Personalised Cora responses based on user's selection
 
     private func getSleepQualityResponse(_ quality: String) -> String {
         switch SleepQuality(rawValue: quality) {

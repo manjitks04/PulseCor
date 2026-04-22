@@ -2,6 +2,8 @@
 //  DashboardViewModel.swift
 //  PulseCor
 //
+// Manages dashboard state: today's check-in status and medication logging.
+//
 
 import Foundation
 import SwiftData
@@ -17,6 +19,7 @@ class DashboardViewModel: ObservableObject {
 
     init() {}
 
+    // Injects ModelContext and loads initial dashboard state
     func setContext(_ context: ModelContext) {
         self.modelContext = context
         loadDashboardData()
@@ -26,6 +29,7 @@ class DashboardViewModel: ObservableObject {
         checkTodayCheckIn()
     }
 
+    // Queries for completed check-in dated today (midnight to midnight)
     private func checkTodayCheckIn() {
         guard let modelContext else { return }
         let start = Calendar.current.startOfDay(for: Date())
@@ -36,6 +40,7 @@ class DashboardViewModel: ObservableObject {
         hasCheckedInToday = ((try? modelContext.fetchCount(descriptor)) ?? 0) > 0
     }
 
+    // Logs user's response to medication reminder notification, called when user taps Taken/Skipped/Snoozed on medication prompt.
     func logMedicationAction(med: PendingMedication, status: MedicationStatus) {
         guard let modelContext else { return }
         let log = MedicationLog(

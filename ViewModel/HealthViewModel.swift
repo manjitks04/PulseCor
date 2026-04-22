@@ -2,8 +2,8 @@
 //  HealthViewModel.swift
 //  PulseCor
 //
-//  Responsibilities: Manages health data sync logic, sync timing decisions, and loading state.
-//  Delegates HealthKit auth and data fetching to HealthKitService and HealthKitManager.
+//  Responsibilities: Manages health data sync logic, sync timing decisions, and loading state
+//  Delegates HealthKit auth and data fetching to HealthKitService and HealthKitManager
 //  ModelContext: Injected via setContext(_:)
 //  Services: HealthKitService (data fetching), HealthKitManager (auth state)
 
@@ -14,7 +14,7 @@ import SwiftData
 @MainActor
 class HealthViewModel: ObservableObject {
 
-    @Published var isSyncing: Bool = false
+    @Published var isSyncing: Bool = false     // True while HealthKit sync is in progress (shows loading spinner in Health tab)
     @Published var errorMessage: String?
 
     private var modelContext: ModelContext?
@@ -25,6 +25,7 @@ class HealthViewModel: ObservableObject {
         self.modelContext = context
     }
 
+    // Syncs HealthKit data if enabled and at least 1 hour has passed since last sync
     func syncIfNeeded(healthSyncEnabled: Bool, lastSyncDate: Date?) async {
         guard healthSyncEnabled, shouldSync(lastSyncDate: lastSyncDate) else { return }
         guard let modelContext else { return }
@@ -39,7 +40,8 @@ class HealthViewModel: ObservableObject {
         try? await Task.sleep(for: .seconds(2))
         isSyncing = false
     }
-
+    
+    // Returns true if sync should run: no previous sync or >1 hour since last sync
     private func shouldSync(lastSyncDate: Date?) -> Bool {
         guard let lastSync = lastSyncDate else { return true }
         return Date().timeIntervalSince(lastSync) > 3600

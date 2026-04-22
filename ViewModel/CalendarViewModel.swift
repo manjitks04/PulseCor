@@ -2,13 +2,16 @@
 //  CalendarViewModel.swift
 //  PulseCor
 //
+//  Generates month-by-month grids from November 2025 to present, with activity indicators.
+//
+
 import Foundation
 import Combine
 import SwiftData
 
 struct MonthGroup {
     let monthTitle: String
-    let weeks: [[DayStatus]]
+    let weeks: [[DayStatus]] //2d array
 }
 
 @MainActor
@@ -16,7 +19,7 @@ class CalendarViewModel: ObservableObject {
 
     @Published var monthGroups: [MonthGroup] = []
     @Published var isLoading = true
-    var currentMonthIndex: Int? = nil
+    var currentMonthIndex: Int? = nil     // Used to scroll calendar to current month on initial load.
 
     private var modelContext: ModelContext?
 
@@ -26,6 +29,7 @@ class CalendarViewModel: ObservableObject {
         self.modelContext = context
     }
 
+    // Fetches check-ins and medication logs once, then builds calendar grids
     func load() {
         guard let modelContext else { return }
         Task {
@@ -62,6 +66,7 @@ class CalendarViewModel: ObservableObject {
         }
     }
 
+    //Fetches all completed check-in dates from November 2025 onward
     private func fetchCheckInDates(calendar: Calendar, modelContext: ModelContext) -> [Date] {
         var startComponents = DateComponents()
         startComponents.year = 2025; startComponents.month = 11; startComponents.day = 1
@@ -71,6 +76,7 @@ class CalendarViewModel: ObservableObject {
         return checkIns.map { calendar.startOfDay(for: $0.date) }
     }
 
+    //Groups medication logs by day for efficient calendar lookup
     private func groupMedLogsByDay(calendar: Calendar, modelContext: ModelContext) -> [Date: [MedicationLogEntry]] {
         var startComponents = DateComponents()
         startComponents.year = 2025; startComponents.month = 11; startComponents.day = 1
@@ -83,11 +89,13 @@ class CalendarViewModel: ObservableObject {
         return Dictionary(grouping: entries) { calendar.startOfDay(for: $0.timestamp) }
     }
 
+    // Adds placeholder DayStatus objects for leading/trailing empty cells to maintain grid alignment
     private func buildWeeks(for monthDate: Date, today: Date, calendar: Calendar, checkInDates: Set<Date>, medLogsByDay: [Date: [MedicationLogEntry]]) -> [[DayStatus]] {
         guard let range = calendar.range(of: .day, in: .month, for: monthDate),
               let firstOfMonth = calendar.date(from: calendar.dateComponents([.year, .month], from: monthDate))
         else { return [] }
 
+        // Calculate leading empty cells (calendar starts on Monday, not Sunday)
         let firstWeekday = calendar.component(.weekday, from: firstOfMonth)
         let offset = (firstWeekday + 5) % 7
         var days: [DayStatus] = []
