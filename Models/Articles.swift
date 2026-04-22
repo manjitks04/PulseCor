@@ -5,6 +5,7 @@
 import Foundation
 import SwiftData
 
+// Articles are seeded from text files on app launch and categorised by health topic.
 @Model
 class Article {
     var id: UUID = UUID()

@@ -2,6 +2,8 @@
 //  User.swift
 //  PulseCor
 //
+//  Single-user model storing profile and streak metadata.
+//
 
 import Foundation
 import SwiftData

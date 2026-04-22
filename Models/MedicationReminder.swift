@@ -2,6 +2,9 @@
 //  MedicationReminder.swift
 //  PulseCor
 //
+// Models for medication tracking and reminder logging
+//
+
 import Foundation
 import SwiftData
 
@@ -14,8 +17,7 @@ class Medication {
     var reminderTimes: [String] 
     var isActive: Bool
     var createdAt: Date
-    var localId: UUID
-
+    var localId: UUID // Unique identifier for linking to MedicationLog entries
     init(
         userId: Int = 1,
         name: String,
@@ -36,6 +38,7 @@ class Medication {
     }
 }
 
+// Records user's response to medication reminder notifcation
 @Model
 class MedicationLog {
     var medicationLocalId: UUID
@@ -68,6 +71,8 @@ enum MedicationStatus: String, Codable, CaseIterable {
     case skipped = "Skipped"
     case snoozed = "Remind me later"
 }
+
+// View-layer representation of a medication log, used in UI to display medication history without queries
 
 struct MedicationLogEntry {
     let medicationLocalId: UUID

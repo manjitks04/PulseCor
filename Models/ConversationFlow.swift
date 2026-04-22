@@ -2,6 +2,9 @@
 //  ConversationFlow.swift
 //  PulseCor
 //
+//  Tracks the current state of multi-step conversational flows with Cora.
+//
+
 import Foundation
 import SwiftData
 
@@ -14,7 +17,8 @@ class ConversationFlow {
     var isComplete: Bool
     var startedAt: Date
     var completedAt: Date?
-    var tempData: [String: String]
+    var tempData: [String: String] // Data is transferred to DailyCheckIn/User models upon completion & then tempData is cleared.
+
 
     init(
         sessionId: String = UUID().uuidString,

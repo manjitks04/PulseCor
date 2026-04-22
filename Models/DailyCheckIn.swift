@@ -2,6 +2,8 @@
 //  DailyCheckIn.swift
 //  PulseCor
 //
+//  Created during Cora's daily check-in flow; queried for streak calculation and weekly reflection chart.
+//
 import Foundation
 import SwiftData
 
@@ -15,10 +17,10 @@ class DailyCheckIn {
     var stressLevel: StressLevel?
     var energyLevel: EnergyLevel?
     var activityLevel: ActivityLevel?
-    var physicalSymptoms: String?
     var createdAt: Date
     var completedAt: Date?
-    var isComplete: Bool
+    var isComplete: Bool     // Set to true when conversation flow finishes; triggers streak update in StreakService.
+
 
     init(
         userId: Int = 1,
@@ -42,7 +44,6 @@ class DailyCheckIn {
         self.stressLevel = stressLevel
         self.energyLevel = energyLevel
         self.activityLevel = activityLevel
-        self.physicalSymptoms = physicalSymptoms
         self.createdAt = createdAt
         self.completedAt = completedAt
         self.isComplete = isComplete

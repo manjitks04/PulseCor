@@ -1,9 +1,16 @@
+//
+//  ChatMessage.swift
+//  PulseCor
+//
+//
+
 import Foundation
 import SwiftData
 
+//represents a single messsage in chat interface
 @Model
 class ChatMessage {
-    var sessionId: String
+    var sessionId: String //messages are grouped by sessionID (1 per check-in flow)
     var sender: MessageSender
     var content: String
     var timestamp: Date

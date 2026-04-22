@@ -2,7 +2,9 @@
 //  HealthModels.swift
 //  PulseCor
 //
+//  SwiftData models for HealthKit data caching.
 //
+
 import Foundation
 import SwiftData
 
@@ -45,6 +47,7 @@ class RestingHeartRateEntry {
     }
 }
 
+//HeartRateVariability, measured in milliseconds. Higher values = better cardiovascular health
 @Model
 class HRVEntry {
     var id: UUID

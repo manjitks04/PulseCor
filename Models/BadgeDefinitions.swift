@@ -7,6 +7,7 @@
 
 import Foundation
 
+// Represents a single streak milestone badge
 struct StreakBadge: Identifiable {
     let id: String
     let imageName: String
@@ -14,6 +15,7 @@ struct StreakBadge: Identifiable {
     let requiredDays: Int
 }
 
+// All available badges
 let allBadgeDefinitions: [StreakBadge] = [
     StreakBadge(id: "1w",  imageName: "SB1W", label: "1 Week",   requiredDays: 7),
     StreakBadge(id: "2w",  imageName: "SB2W", label: "2 Weeks",  requiredDays: 14),
