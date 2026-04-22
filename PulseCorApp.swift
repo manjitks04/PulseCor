@@ -1,6 +1,9 @@
 //  PulseCorApp.swift
 //  PulseCor
 //
+// Main app entry point
+// Configures SwiftData container, seeds articles, and force-initializes NotificationService singleton
+
 
 import SwiftUI
 import SwiftData
@@ -9,6 +12,7 @@ import SwiftData
 struct PulseCorApp: App {
 
     //static property so intialised off main thread - prevents any freezing on launch
+    //container is shared across entire app via .modelContainer modifier
     static let container: ModelContainer = {
         let schema = Schema([
             User.self,
@@ -32,12 +36,14 @@ struct PulseCorApp: App {
     }()
 
     init() {
-        _ = NotificationService.shared
+        _ = NotificationService.shared // Force-initialise NotificationService singleton to set UNUserNotificationCenter delegate
     }
 
     var body: some Scene {
         WindowGroup {
             ContentView()
+            // Seeds articles from .txt files on first launch
+            // Background priority prevents blocking main thread during startup
                 .task(priority: .background) {
                     ArticleSeeder.seedIfNeeded(in: PulseCorApp.container.mainContext)
                 }

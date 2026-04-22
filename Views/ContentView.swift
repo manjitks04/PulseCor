@@ -2,6 +2,10 @@
 //  ContentView.swift
 //  PulseCor
 //
+// Root view containing tab navigation and app initialisation logic
+// Handles HealthKit setup, notification scheduling, onboarding trigger, and pending tab navigation
+//
+
 
 import SwiftUI
 import SwiftData
@@ -11,6 +15,7 @@ struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
     @ObservedObject private var navManager = NavigationManager.shared
 
+    // Passed as parameters to HealthView to avoid duplicate @Query in View
     @Query(sort: \StepEntry.date, order: .reverse) private var stepEntries: [StepEntry]
     @Query(sort: \HeartRateEntry.date, order: .reverse) private var heartRateEntries: [HeartRateEntry]
     @Query(sort: \RestingHeartRateEntry.date, order: .reverse) private var restingEntries: [RestingHeartRateEntry]
@@ -52,19 +57,25 @@ struct ContentView: View {
         }
         .preferredColorScheme(isDarkMode ? .dark : .light)
         .task {
+            // App launch initialisation sequence:
+
+            //1. healthkit auth
             HealthKitManager.shared.setup(context: modelContext)
 
+            //2. request notif permissions
             let granted = await NotificationService.shared.requestAuthorization()
             if granted {
                 NotificationService.shared.scheduleDailyCheckIn(hour: 11, minute: 0, isAM: true)
                 NotificationService.shared.scheduleWeeklyReflection(hour: 18, minute: 0, isAM: false)
             }
 
+            //3. handle pnding tab navigation
             if let pending = navManager.pendingTab {
                 navManager.selectedTab = pending
                 navManager.pendingTab = nil
             }
 
+            //4.start onboarding tut 
             OnboardingViewModel.shared.start()
         }
         .onChange(of: navManager.pendingTab) {
